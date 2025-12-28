@@ -1,42 +1,66 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, MessageCircle, Send, Share2, Calendar, Tag } from 'lucide-react';
+import { ChevronLeft, MessageCircle, Send, Share2, Calendar, Tag, Trash2 } from 'lucide-react';
 import { marked } from 'marked';
+import { supabase } from '../lib/supabaseClient';
 
 interface ArticleDetailProps {
-  user: { email: string; role: string } | null;
+  user: { id: string; email: string; role: string; display_name?: string } | null;
 }
 
 const ArticleDetail: React.FC<ArticleDetailProps> = ({ user }) => {
   const { id } = useParams<{ id: string }>();
   const [commentText, setCommentText] = useState('');
   const [article, setArticle] = useState<any>(null);
-  const [comments, setComments] = useState([
-    { id: '1', user: '技术达人', content: '文章写得很透彻，学到了！', date: '2024-03-21' },
-    { id: '2', user: '极客范', content: '期待下一篇关于微前端的介绍。', date: '2024-03-22' }
-  ]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchArticleAndComments = async () => {
+    if (!id) return;
+    
+    // 1. 获取文章详情
+    const { data: artData } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (artData) setArticle(artData);
+
+    // 2. 获取评论
+    const { data: commData } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('article_id', id)
+      .order('created_at', { ascending: false });
+    
+    if (commData) setComments(commData);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const savedArticles = localStorage.getItem('site_articles');
-    if (savedArticles) {
-      const list = JSON.parse(savedArticles);
-      const found = list.find((a: any) => String(a.id) === String(id));
-      if (found) setArticle(found);
-    }
+    fetchArticleAndComments();
   }, [id]);
 
-  const handlePostComment = () => {
+  const handlePostComment = async () => {
     if (!user) return alert('请先登录后发表评论');
     if (!commentText.trim()) return;
-    const newComment = {
-      id: Date.now().toString(),
-      user: user.email.split('@')[0],
-      content: commentText,
-      date: new Date().toISOString().split('T')[0]
-    };
-    setComments([...comments, newComment]);
-    setCommentText('');
+
+    const { error } = await supabase
+      .from('comments')
+      .insert([{
+        article_id: id,
+        user_name: user.display_name || user.email.split('@')[0],
+        content: commentText
+      }]);
+
+    if (error) {
+      alert('评论发表失败，请稍后再试');
+    } else {
+      setCommentText('');
+      fetchArticleAndComments(); // 重新加载评论
+    }
   };
 
   const htmlContent = useMemo(() => {
@@ -49,7 +73,8 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ user }) => {
     }
   }, [article]);
 
-  if (!article) return <div className="container py-5 text-center fw-black text-muted text-uppercase tracking-widest min-vh-50 d-flex align-items-center justify-content-center">正在加载文章内容...</div>;
+  if (loading) return <div className="container py-5 text-center fw-black text-muted text-uppercase tracking-widest min-vh-50 d-flex align-items-center justify-content-center">正在从云端读取博文内容...</div>;
+  if (!article) return <div className="container py-5 text-center fw-black text-muted mt-5">文章不存在或已被删除。</div>;
 
   return (
     <div className="container py-5 animate-fade-in">
@@ -69,7 +94,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ user }) => {
         <div className="card-body p-4 p-lg-10">
           <div className="d-flex align-items-center gap-4 mb-4">
             <span className="badge bg-dark rounded-pill px-4 py-2 fw-black text-uppercase tracking-widest"><Tag size={12} className="me-2" />{article.category}</span>
-            <span className="small text-muted fw-bold"><Calendar size={14} className="me-2" />{article.date}</span>
+            <span className="small text-muted fw-bold"><Calendar size={14} className="me-2" />{new Date(article.created_at).toLocaleDateString()}</span>
           </div>
           <h1 className="display-4 fw-black tracking-tighter mb-5">{article.title}</h1>
           
@@ -92,22 +117,24 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ user }) => {
         </h3>
 
         <div className="list-group list-group-flush mb-5">
-          {comments.map(comment => (
+          {comments.length > 0 ? comments.map(comment => (
             <div key={comment.id} className="list-group-item bg-transparent border-secondary border-opacity-25 py-4 px-0 text-white">
               <div className="d-flex gap-4">
                 <div className="bg-secondary bg-opacity-25 rounded-3 d-flex align-items-center justify-content-center fw-black text-info" style={{width:'48px', height:'48px', flexShrink: 0}}>
-                  {comment.user[0].toUpperCase()}
+                  {comment.user_name[0].toUpperCase()}
                 </div>
                 <div>
                   <div className="d-flex justify-content-between align-items-center mb-2 gap-3">
-                    <h6 className="fw-black mb-0">{comment.user}</h6>
-                    <span className="small text-muted fw-bold">{comment.date}</span>
+                    <h6 className="fw-black mb-0">{comment.user_name}</h6>
+                    <span className="small text-muted fw-bold">{new Date(comment.created_at).toLocaleDateString()}</span>
                   </div>
                   <p className="text-secondary fw-medium mb-0 small">{comment.content}</p>
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="py-4 text-secondary text-center fw-bold opacity-50">暂无评论，来当第一个沙发吧！</div>
+          )}
         </div>
 
         <div className="bg-white bg-opacity-5 p-4 rounded-5 border border-white border-opacity-10">

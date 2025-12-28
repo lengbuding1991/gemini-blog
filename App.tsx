@@ -13,6 +13,7 @@ import {
   Zap,
   CheckCircle2
 } from 'lucide-react';
+import { supabase } from './lib/supabaseClient';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -25,48 +26,61 @@ import ToolDetail from './pages/ToolDetail';
 import ProfilePage from './pages/ProfilePage';
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<{ 
-    email: string; 
-    role: 'admin' | 'user'; 
-    is_premium_user?: boolean;
-    displayName?: string;
-    avatarUrl?: string;
-  } | null>(null);
-
+  const [user, setUser] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
-  const [menuExpanded, setMenuExpanded] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
-    };
+    // 监听滚动
+    const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem('site_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        localStorage.removeItem('site_user');
+    // 1. 初始化检查当前 Session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) fetchProfile(session.user.id, session.user.email);
+      else setLoading(false);
+    });
+
+    // 2. 监听 Auth 状态变化
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) fetchProfile(session.user.id, session.user.email);
+      else {
+        setUser(null);
+        setLoading(false);
       }
-    }
+    });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('site_user');
-    setUser(null);
-    window.location.hash = '#/';
+  const fetchProfile = async (userId: string, email: string | undefined) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (data) {
+      setUser({ ...data, email });
+    } else {
+      // 如果没有 Profile，可能是刚注册，创建一个默认的
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .insert([{ id: userId, email, role: 'user', is_premium_user: false }])
+        .select()
+        .single();
+      setUser({ ...newProfile, email });
+    }
+    setLoading(false);
   };
 
-  const updateUserInfo = (newData: any) => {
-    if (user) {
-      const updatedUser = { ...user, ...newData };
-      setUser(updatedUser);
-      localStorage.setItem('site_user', JSON.stringify(updatedUser));
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.hash = '#/';
   };
 
   const renderBadge = () => {
@@ -76,35 +90,25 @@ const App: React.FC = () => {
     return <span className="badge bg-light text-muted rounded-pill px-2 py-1 ms-1 fw-black border" style={{fontSize: '9px'}}>MEMBER</span>;
   };
 
+  if (loading) return <div className="min-vh-100 d-flex align-items-center justify-content-center fw-black text-muted text-uppercase tracking-widest">初始化极客空间...</div>;
+
   return (
     <HashRouter>
       <div className="d-flex flex-column min-vh-100">
         <header className="fixed-top w-100">
-          <nav className={`navbar navbar-expand-lg navbar-refined mx-auto ${scrolled ? 'scrolled' : ''} ${menuExpanded ? 'expanded' : ''}`}>
+          <nav className={`navbar navbar-expand-lg navbar-refined mx-auto ${scrolled ? 'scrolled' : ''}`}>
             <div className="container-fluid px-0">
               <Link to="/" className="navbar-brand d-flex align-items-center gap-2">
                 <span className="fw-black fs-4 tracking-tighter text-slate-900 transition-all">
                   冷丶布丁<span className="logo-dot"></span>
                 </span>
               </Link>
-              
-              <button 
-                className="navbar-toggler border-0 shadow-none" 
-                type="button" 
-                data-bs-toggle="collapse" 
-                data-bs-target="#mainNavbar"
-                onClick={() => setMenuExpanded(!menuExpanded)}
-              >
-                <Menu size={24} />
-              </button>
-
               <div className="collapse navbar-collapse" id="mainNavbar">
                 <ul className="navbar-nav mx-auto mb-2 mb-lg-0 gap-1">
                   <li className="nav-item"><Link to="/" className="nav-link nav-link-refined">首页</Link></li>
                   <li className="nav-item"><Link to="/articles" className="nav-link nav-link-refined">深度思考</Link></li>
                   <li className="nav-item"><Link to="/tools" className="nav-link nav-link-refined">实验室</Link></li>
                 </ul>
-
                 <div className="d-flex align-items-center gap-3">
                   {user?.role === 'admin' && (
                     <Link to="/admin" className="btn btn-dark rounded-pill px-3 py-2 d-none d-lg-flex align-items-center gap-2 shadow-sm border-0 transition-all hover-blue">
@@ -112,90 +116,49 @@ const App: React.FC = () => {
                       <span className="fw-black small text-uppercase tracking-widest" style={{fontSize: '11px'}}>进入后台</span>
                     </Link>
                   )}
-
                   {user ? (
                     <div className="dropdown">
-                      <div className="d-flex align-items-center gap-2 cursor-pointer ps-2 py-1 pe-3 bg-white rounded-pill border shadow-sm transition-all" data-bs-toggle="dropdown" aria-expanded="false">
+                      <div className="d-flex align-items-center gap-2 cursor-pointer ps-2 py-1 pe-3 bg-white rounded-pill border shadow-sm transition-all" data-bs-toggle="dropdown">
                         <div className="rounded-circle overflow-hidden border border-light" style={{width: '32px', height: '32px'}}>
-                          <img src={user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aiden'} alt="avatar" className="w-100 h-100 object-fit-cover" />
+                          <img src={user.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aiden'} alt="avatar" className="w-100 h-100 object-fit-cover" />
                         </div>
                         <div className="d-flex flex-column">
-                          <span className="small fw-black text-dark d-none d-sm-inline lh-1">{user.displayName || user.email.split('@')[0]}</span>
+                          <span className="small fw-black text-dark lh-1">{user.display_name || user.email.split('@')[0]}</span>
                           {renderBadge()}
                         </div>
                         <ChevronDown size={14} className="text-muted ms-1" />
                       </div>
-                      <ul className="dropdown-menu dropdown-menu-end border-0 shadow-lg p-2 rounded-4 mt-3 animate-fade-in" style={{minWidth: '220px'}}>
-                        <li className="px-3 py-3 border-bottom mb-2 bg-light rounded-top-4">
-                           <div className="small fw-black text-muted text-uppercase tracking-widest mb-1" style={{fontSize: '9px'}}>当前身份 / Status</div>
-                           <div className={`fw-black fs-6 ${user.role === 'admin' ? 'text-slate-900' : user.is_premium_user ? 'text-warning' : 'text-blue-600'}`}>
-                             {user.role === 'admin' ? '总监 / 系统管理员' : user.is_premium_user ? '尊贵会员 / VIP PRO' : '普通会员 / MEMBER'}
-                           </div>
-                        </li>
-                        {user.role === 'admin' && (
-                          <li>
-                            <Link to="/admin" className="dropdown-item d-flex align-items-center gap-2 text-primary">
-                              <ShieldCheck size={16} /> 管理中心 (Dashboard)
-                            </Link>
-                          </li>
-                        )}
+                      <ul className="dropdown-menu dropdown-menu-end border-0 shadow-lg p-2 rounded-4 mt-3 animate-fade-in">
                         <li><Link to="/profile" className="dropdown-item">个人足迹</Link></li>
-                        
-                        {!user.is_premium_user && user.role !== 'admin' ? (
-                          <li><Link to="/tools" className="dropdown-item text-warning d-flex align-items-center gap-2"><Crown size={16}/> 升级 PRO</Link></li>
-                        ) : (
-                          <li className="px-3 py-2 text-success small fw-black d-flex align-items-center gap-2">
-                             <CheckCircle2 size={14} /> 已解锁所有 PRO 工具
-                          </li>
-                        )}
-                        
-                        <li><hr className="dropdown-divider opacity-50" /></li>
+                        {user.role === 'admin' && <li><Link to="/admin" className="dropdown-item">管理中心</Link></li>}
                         <li><button onClick={handleLogout} className="dropdown-item text-danger d-flex align-items-center gap-2"><LogOut size={16} /> 登出账号</button></li>
                       </ul>
                     </div>
                   ) : (
-                    <Link to="/auth" className="btn btn-blue py-2 px-4 shadow">
-                      开始探索
-                    </Link>
+                    <Link to="/auth" className="btn btn-blue py-2 px-4 shadow">开始探索</Link>
                   )}
                 </div>
               </div>
             </div>
           </nav>
         </header>
-
         <div style={{ height: '100px' }}></div>
-
         <main className="flex-grow-1">
           <Routes>
             <Route path="/" element={<HomePage user={user} />} />
             <Route path="/articles" element={<ArticleList />} />
             <Route path="/articles/:id" element={<ArticleDetail user={user} />} />
-            <Route path="/tools" element={<ToolsGrid user={user} onUpdatePremium={(s) => updateUserInfo({is_premium_user: s})} />} />
+            {/* Added safety check for user before calling fetchProfile */}
+            <Route path="/tools" element={<ToolsGrid user={user} onUpdatePremium={() => user && fetchProfile(user.id, user.email)} />} />
             <Route path="/tools/:id" element={<ToolDetail user={user} />} />
             <Route path="/admin/*" element={<AdminDashboard user={user} />} />
-            <Route path="/auth" element={<AuthPage setUser={setUser} />} />
-            <Route path="/profile" element={<ProfilePage user={user} onUpdateProfile={updateUserInfo} />} />
+            <Route path="/auth" element={<AuthPage />} />
+            {/* Added missing onUpdateProfile prop to fix compilation error */}
+            <Route path="/profile" element={<ProfilePage user={user} onUpdateProfile={() => user && fetchProfile(user.id, user.email)} />} />
           </Routes>
         </main>
-
         <footer className="bg-white border-top py-5 mt-5">
-          <div className="container">
-            <div className="row align-items-center gy-4">
-              <div className="col-md-4 text-center text-md-start">
-                <span className="fw-black h5 mb-0 text-slate-900">冷丶布丁<span className="logo-dot"></span></span>
-              </div>
-              <div className="col-md-4 text-center">
-                <p className="text-muted mb-0 small fw-medium">© 2026 冷丶布丁的个人空间. Built with Passion.</p>
-              </div>
-              <div className="col-md-4 text-center text-md-end">
-                <div className="d-flex justify-content-center justify-content-md-end gap-4">
-                  <a href="#" className="text-muted text-decoration-none small fw-black text-uppercase tracking-widest hover-blue">Github</a>
-                  <a href="#" className="text-muted text-decoration-none small fw-black text-uppercase tracking-widest hover-blue">Twitter</a>
-                </div>
-              </div>
-            </div>
-          </div>
+           <div className="container text-center text-muted small fw-medium">© 2026 冷丶布丁的个人空间. Built with Passion and Supabase.</div>
         </footer>
       </div>
     </HashRouter>

@@ -1,61 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Navigate, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  BarChart3, 
-  FileText,
-  Wrench,
-  ChevronLeft,
-  Check,
-  Zap,
-  Crown,
-  MessageSquare,
-  Tag,
-  Upload,
-  Image as ImageIcon,
-  Layout,
-  X,
-  Link as LinkIcon
+  Plus, Edit, Trash2, BarChart3, FileText, Wrench, ChevronLeft, Zap, Crown, 
+  Image as ImageIcon, Tag, Hash, DollarSign, Upload, Link as LinkIcon, Loader2
 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 interface AdminDashboardProps {
-  user: { email: string; role: string } | null;
+  user: { id: string; email: string; role: string } | null;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
   const location = useLocation();
   if (!user || user.role !== 'admin') return <Navigate to="/" />;
-
   const isActive = (path: string) => location.pathname === path;
 
   return (
     <div className="container py-5 animate-fade-in">
       <div className="row g-4">
-        {/* 左侧导航 */}
         <div className="col-lg-3">
           <div className="sticky-lg-top" style={{top: '120px'}}>
-            <div className="d-flex flex-row flex-lg-column gap-2 overflow-auto pb-3 pb-lg-0">
-              <Link to="/admin" className={`btn w-100 text-start py-3 px-4 rounded-4 fw-black text-uppercase tracking-widest small shadow-sm d-flex align-items-center gap-3 transition-all ${isActive('/admin') ? 'btn-dark' : 'btn-white bg-white'}`}>
-                <BarChart3 size={18} /> 概览
-              </Link>
-              <Link to="/admin/articles" className={`btn w-100 text-start py-3 px-4 rounded-4 fw-black text-uppercase tracking-widest small shadow-sm d-flex align-items-center gap-3 transition-all ${isActive('/admin/articles') ? 'btn-dark' : 'btn-white bg-white'}`}>
-                <FileText size={18} /> 文章管理
-              </Link>
-              <Link to="/admin/tools" className={`btn w-100 text-start py-3 px-4 rounded-4 fw-black text-uppercase tracking-widest small shadow-sm d-flex align-items-center gap-3 transition-all ${isActive('/admin/tools') ? 'btn-dark' : 'btn-white bg-white'}`}>
-                <Wrench size={18} /> 工具配置
-              </Link>
+            <div className="d-flex flex-row flex-lg-column gap-2 mb-4">
+              <Link to="/admin" className={`btn w-100 text-start py-3 px-4 rounded-4 fw-black transition-all ${isActive('/admin') ? 'btn-dark shadow' : 'btn-white bg-white shadow-sm'}`}><BarChart3 size={18} className="me-2"/> 概览</Link>
+              <Link to="/admin/articles" className={`btn w-100 text-start py-3 px-4 rounded-4 fw-black transition-all ${isActive('/admin/articles') ? 'btn-dark shadow' : 'btn-white bg-white shadow-sm'}`}><FileText size={18} className="me-2"/> 文章管理</Link>
+              <Link to="/admin/tools" className={`btn w-100 text-start py-3 px-4 rounded-4 fw-black transition-all ${isActive('/admin/tools') ? 'btn-dark shadow' : 'btn-white bg-white shadow-sm'}`}><Wrench size={18} className="me-2"/> 工具配置</Link>
             </div>
           </div>
         </div>
-
-        {/* 右侧主内容区 */}
         <div className="col-lg-9">
-          <div className="bg-white rounded-5 p-4 p-md-5 shadow-sm min-vh-50 border border-light">
+          <div className="bg-white rounded-5 p-4 p-md-5 shadow-sm min-vh-50 border">
             <Routes>
               <Route path="/" element={<DashboardHome />} />
-              <Route path="/articles" element={<ManageArticles />} />
+              <Route path="/articles" element={<ManageArticles authorId={user.id} />} />
               <Route path="/tools" element={<ManageTools />} />
             </Routes>
           </div>
@@ -65,39 +41,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
   );
 };
 
-// --- 子组件：管理首页 ---
 const DashboardHome = () => {
   const [stats, setStats] = useState({ articles: 0, tools: 0 });
-
   useEffect(() => {
-    const articles = JSON.parse(localStorage.getItem('site_articles') || '[]');
-    const tools = JSON.parse(localStorage.getItem('site_tools') || '[]');
-    setStats({ articles: articles.length, tools: tools.length });
+    const fetchStats = async () => {
+      const { count: artCount } = await supabase.from('articles').select('*', { count: 'exact', head: true });
+      const { count: toolCount } = await supabase.from('tools').select('*', { count: 'exact', head: true });
+      setStats({ articles: artCount || 0, tools: toolCount || 0 });
+    };
+    fetchStats();
   }, []);
-
   return (
     <div>
-      <h2 className="fw-black display-6 tracking-tighter mb-5 text-slate-900">管理概览</h2>
-      <div className="row g-4 mb-5">
+      <h2 className="fw-black display-6 mb-5 tracking-tighter text-slate-900">控制台概览</h2>
+      <div className="row g-4">
         <div className="col-sm-6">
-          <div className="bg-slate-900 rounded-5 p-5 shadow-lg position-relative overflow-hidden">
-            <div className="position-relative z-1 text-white">
-              <div className="text-white-50 small fw-black text-uppercase tracking-widest mb-2" style={{opacity: 0.8}}>Total Articles</div>
-              <div className="display-3 fw-black tracking-tighter mb-0 text-white">{stats.articles}</div>
-              <p className="small text-blue-400 fw-bold mt-2 mb-0">内容存储状态：良好</p>
-            </div>
-            <FileText size={120} className="position-absolute end-0 bottom-0 opacity-10 m-n3 text-white" />
+          <div className="bg-slate-900 rounded-5 p-5 text-white shadow-lg">
+            <div className="small fw-black text-uppercase opacity-50 mb-2 tracking-widest">Total Articles</div>
+            <div className="display-3 fw-black">{stats.articles}</div>
           </div>
         </div>
         <div className="col-sm-6">
-          <div className="bg-blue-600 rounded-5 p-5 shadow-lg position-relative overflow-hidden">
-            <div className="position-relative z-1 text-white">
-              {/* 关键修复：确保文字在蓝色背景下始终为白色且可见 */}
-              <div className="text-white small fw-black text-uppercase tracking-widest mb-2" style={{opacity: 0.85}}>Active Tools</div>
-              <div className="display-3 fw-black tracking-tighter mb-0 text-white">{stats.tools}</div>
-              <p className="small text-white fw-bold mt-2 mb-0" style={{opacity: 0.9}}>工具引擎：在线</p>
-            </div>
-            <Zap size={120} className="position-absolute end-0 bottom-0 opacity-10 m-n3 text-white" />
+          <div className="bg-blue-600 rounded-5 p-5 text-white shadow-lg">
+            <div className="small fw-black text-uppercase opacity-50 mb-2 tracking-widest">Active Tools</div>
+            <div className="display-3 fw-black">{stats.tools}</div>
           </div>
         </div>
       </div>
@@ -105,11 +72,12 @@ const DashboardHome = () => {
   );
 };
 
-// --- 子组件：文章管理 (保持不变) ---
-const ManageArticles = () => {
+const ManageArticles = ({ authorId }: { authorId: string }) => {
   const [articles, setArticles] = useState<any[]>([]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editArt, setEditArt] = useState({ 
     title: '', 
     excerpt: '', 
@@ -117,337 +85,333 @@ const ManageArticles = () => {
     cover_image: '', 
     category: '技术架构' 
   });
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('site_articles');
-    if (saved && JSON.parse(saved).length > 0) {
-      setArticles(JSON.parse(saved));
-    } else {
-      const defaults = [
-        { id: '1', title: '现代前端架构演进之路', excerpt: '探讨前端架构在过去十年的变化与未来趋势。', content: '## 架构的演进\n\n从最初的 jQuery 时代到现在的 React/Vue 大行其道...', category: '技术架构', date: '2024-03-20', cover_image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800' },
-        { id: '2', title: '深度学习在生产环境的落地挑战', excerpt: '分享部署 AI 模型时遇到的性能瓶颈。', content: '## AI 的挑战\n\n将模型部署到生产环境不仅仅是模型训练的问题...', category: '人工智能', date: '2024-03-18', cover_image: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&q=80&w=800' }
-      ];
-      setArticles(defaults);
-      localStorage.setItem('site_articles', JSON.stringify(defaults));
+  const fetchArticles = async () => {
+    const { data } = await supabase.from('articles').select('*').order('created_at', { ascending: false });
+    setArticles(data || []);
+  };
+
+  useEffect(() => { fetchArticles(); }, []);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `article_covers/${fileName}`;
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('covers')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('covers')
+        .getPublicUrl(filePath);
+
+      setEditArt({ ...editArt, cover_image: publicUrl });
+      alert('封面图上传成功！');
+    } catch (error: any) {
+      if (error.message && error.message.includes('Bucket not found')) {
+        alert("上传失败：未找到名为 'covers' 的存储桶。\n\n请前往 Supabase 控制台 > Storage 页面，确认已创建一个名为 'covers' 的公开（Public）存储桶。");
+      } else if (error.message && error.message.includes('security policy')) {
+        alert("上传失败：权限不足。\n\n这通常是由于 Supabase 的存储策略 (Storage RLS) 未正确配置。请检查 README.md 文件中的 '2.2 配置存储桶访问策略' 章节，并确保已执行相关的 SQL 脚本。");
+      } else {
+        alert('上传失败: ' + error.message);
+      }
+    } finally {
+      setUploading(false);
     }
-  }, []);
+  };
 
-  const handleSave = () => {
-    if (!editArt.title || !editArt.content) return alert('请填写标题和内容');
-    let newList;
-    const now = new Date().toISOString().split('T')[0];
+  const handleSave = async () => {
+    if (!editArt.title || !editArt.content) return alert('请填入标题和正文');
+    const articleData = { ...editArt, author_id: authorId };
+    
+    let error;
     if (editingId) {
-      newList = articles.map(art => art.id === editingId ? { ...art, ...editArt, date: now } : art);
+      const { error: err } = await supabase.from('articles').update(articleData).eq('id', editingId);
+      error = err;
     } else {
-      newList = [{ ...editArt, id: Date.now().toString(), date: now }, ...articles];
+      const { error: err } = await supabase.from('articles').insert([articleData]);
+      error = err;
     }
-    setArticles(newList);
-    localStorage.setItem('site_articles', JSON.stringify(newList));
-    setShowEditor(false);
-    setEditingId(null);
-  };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditArt({ ...editArt, cover_image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (error) {
+        alert('保存失败: ' + error.message + '\n\n提示：这通常是由于数据库的 Row Level Security (RLS) 策略没有正确配置。请检查 README.md 中的 RLS 配置指南。');
+    } else {
+      setShowEditor(false);
+      fetchArticles();
     }
   };
 
-  const categories = ['技术架构', '前端开发', '人工智能', '实战教程', '生活随笔'];
+  const handleDelete = async (id: string) => {
+    if (confirm('确定要删除这篇文章吗？操作不可撤销。')) {
+      await supabase.from('articles').delete().eq('id', id);
+      fetchArticles();
+    }
+  };
 
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-5">
-        <h2 className="fw-black h3 mb-0 text-slate-900">文章管理</h2>
+        <h2 className="fw-black h3 mb-0 tracking-tighter">内容管理</h2>
         {!showEditor && (
-          <button onClick={() => { setEditArt({ title: '', excerpt: '', content: '', cover_image: '', category: '技术架构' }); setEditingId(null); setShowEditor(true); }} className="btn btn-dark rounded-pill px-4 py-2 fw-black small text-uppercase tracking-widest d-flex align-items-center gap-2 shadow">
-            <Plus size={18} /> 新建文章
+          <button onClick={() => { 
+            setEditArt({ title: '', excerpt: '', content: '', cover_image: '', category: '技术架构' }); 
+            setEditingId(null); 
+            setShowEditor(true); 
+          }} className="btn btn-blue rounded-pill px-4 fw-black">
+            <Plus size={18} className="me-1"/> 发布新文章
           </button>
         )}
       </div>
 
       {showEditor ? (
         <div className="animate-fade-in">
-          <button onClick={() => setShowEditor(false)} className="btn btn-link text-muted text-decoration-none fw-black small text-uppercase tracking-widest p-0 mb-4 d-flex align-items-center gap-2">
-            <ChevronLeft size={16} /> 取消并返回
+          <button onClick={() => setShowEditor(false)} className="btn btn-link text-muted mb-4 p-0 fw-bold text-decoration-none">
+            <ChevronLeft size={16}/> 取消返回
           </button>
           
           <div className="row g-4">
-            <div className="col-lg-8">
-              <div className="mb-4">
-                <div className="form-label-custom">
-                  <span className="label-zh">文章标题</span>
-                  <span className="label-en">Title</span>
+            <div className="col-12">
+               <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest">文章标题</label>
+               <input className="form-control py-3 rounded-4 px-4 shadow-sm border-light fw-bold" placeholder="输入引人入胜的标题" value={editArt.title} onChange={e => setEditArt({...editArt, title: e.target.value})} />
+            </div>
+            <div className="col-md-6">
+               <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest">分类</label>
+               <select className="form-select py-3 rounded-4 px-4 shadow-sm border-light fw-bold" value={editArt.category} onChange={e => setEditArt({...editArt, category: e.target.value})}>
+                 <option>技术架构</option>
+                 <option>前端开发</option>
+                 <option>人工智能</option>
+                 <option>生活随想</option>
+                 <option>作品展示</option>
+               </select>
+            </div>
+            <div className="col-md-6"></div> {/* Placeholder to keep layout */}
+            
+            {/* --- NEW: Image Preview & Upload Section --- */}
+            <div className="col-12">
+              <div className="row g-3 align-items-end">
+                <div className="col-md-3 col-sm-4">
+                  <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest">封面预览</label>
+                  <div className="aspect-ratio aspect-ratio-1x1 bg-light rounded-4 d-flex align-items-center justify-content-center overflow-hidden border shadow-inner">
+                    {editArt.cover_image ? (
+                      <img src={editArt.cover_image} className="w-100 h-100 object-fit-cover" alt="封面预览"/>
+                    ) : (
+                      <ImageIcon size={32} className="text-muted opacity-50" />
+                    )}
+                  </div>
                 </div>
-                <input className="form-control input-group-refined border-2 py-3 px-4 fw-black" placeholder="输入文章标题..." value={editArt.title} onChange={e => setEditArt({...editArt, title: e.target.value})} />
-              </div>
-              
-              <div className="mb-4">
-                <div className="form-label-custom">
-                  <span className="label-zh">摘要描述</span>
-                  <span className="label-en">Excerpt</span>
+                <div className="col-md-9 col-sm-8">
+                  <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest d-flex justify-content-between">
+                    <span>封面图 URL / 上传</span>
+                    {uploading && <span className="text-blue-600"><Loader2 size={12} className="animate-spin" /> 上传中...</span>}
+                  </label>
+                  <div className="input-group">
+                      <input className="form-control py-3 rounded-start-4 px-4 shadow-sm border-light fw-bold" placeholder="输入 URL 或点击右侧上传" value={editArt.cover_image} onChange={e => setEditArt({...editArt, cover_image: e.target.value})} />
+                      <button className="btn btn-light border-light border-start-0 rounded-end-4 px-3 d-flex align-items-center" type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                        <Upload size={18} />
+                      </button>
+                  </div>
+                  <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileUpload} />
                 </div>
-                <textarea className="form-control input-group-refined border-2 py-3 px-4 fw-bold" rows={2} placeholder="简单描述文章内容..." value={editArt.excerpt} onChange={e => setEditArt({...editArt, excerpt: e.target.value})} />
-              </div>
-
-              <div className="mb-4">
-                <div className="form-label-custom">
-                  <span className="label-zh">Markdown 正文</span>
-                  <span className="label-en">Content (Markdown)</span>
-                </div>
-                <textarea 
-                  className="form-control markdown-editor-refined" 
-                  rows={14} 
-                  placeholder="使用 Markdown 语法书写，此处已同步全局 Inter 字体..." 
-                  value={editArt.content} 
-                  onChange={e => setEditArt({...editArt, content: e.target.value})} 
-                />
               </div>
             </div>
 
-            <div className="col-lg-4">
-              <div className="bg-light rounded-5 p-4 border border-2 border-dashed">
-                <div className="mb-4">
-                  <div className="form-label-custom">
-                    <span className="label-zh">所属分类</span>
-                    <span className="label-en">Category</span>
-                  </div>
-                  <select className="form-select input-group-refined border-2 py-3 px-3 fw-black" value={editArt.category} onChange={e => setEditArt({...editArt, category: e.target.value})}>
-                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div className="mb-4">
-                  <div className="form-label-custom">
-                    <span className="label-zh">封面图片配置</span>
-                    <span className="label-en">Cover Image</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-white border-2 border-dashed rounded-4 p-4 text-center cursor-pointer mb-3 transition-all hover-border-blue-600 hover-bg-light"
-                  >
-                    <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileUpload} />
-                    <Upload size={24} className="text-muted mb-2" />
-                    <div className="small fw-black text-slate-900">点击上传本地图片</div>
-                    <div className="text-muted fw-bold mt-1" style={{fontSize: '9px'}}>支持 JPG, PNG, WEBP</div>
-                  </div>
-
-                  <div className="text-center text-muted fw-black small mb-3 text-uppercase tracking-widest" style={{fontSize: '9px'}}>或者</div>
-
-                  <input className="form-control input-group-refined border-2 py-3 px-3 fw-bold small mb-3" placeholder="输入网络图片 URL..." value={editArt.cover_image} onChange={e => setEditArt({...editArt, cover_image: e.target.value})} />
-                  
-                  {editArt.cover_image && (
-                    <div className="position-relative">
-                      <img src={editArt.cover_image} className="w-100 rounded-4 shadow-sm object-fit-cover" style={{height: '140px'}} alt="Preview" />
-                      <button 
-                        onClick={() => setEditArt({...editArt, cover_image: ''})}
-                        className="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 m-2 shadow"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <button onClick={handleSave} className="btn btn-blue w-100 py-3 rounded-4 shadow-lg d-flex align-items-center justify-content-center gap-2">
-                  <Check size={20} /> 保存并发布
-                </button>
-              </div>
+            <div className="col-12">
+               <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest">内容摘要</label>
+               <textarea className="form-control py-3 rounded-4 px-4 shadow-sm border-light fw-medium" rows={2} placeholder="简短的描述，将显示在列表页" value={editArt.excerpt} onChange={e => setEditArt({...editArt, excerpt: e.target.value})} />
+            </div>
+            <div className="col-12">
+               <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest">正文内容 (Markdown)</label>
+               <textarea className="form-control font-monospace py-4 rounded-4 px-4 shadow-sm border-light" rows={12} placeholder="支持 Markdown 语法..." value={editArt.content} onChange={e => setEditArt({...editArt, content: e.target.value})} />
             </div>
           </div>
+          <button onClick={handleSave} className="btn btn-blue w-100 py-3 rounded-4 fw-black shadow-lg mt-5">确认并发布</button>
         </div>
       ) : (
-        <div className="d-flex flex-column gap-3">
-          {articles.map(art => (
-            <div key={art.id} className="bg-white border rounded-4 p-3 d-flex align-items-center justify-content-between transition-all hover-shadow-sm">
-              <div className="d-flex align-items-center gap-3">
-                <img src={art.cover_image} className="rounded-3 object-fit-cover d-none d-md-block" style={{width: '60px', height: '40px'}} alt="" />
+        <div className="d-flex flex-column gap-4">
+          {articles.length > 0 ? articles.map(art => (
+            <div key={art.id} className="bg-light rounded-5 p-3 d-flex align-items-center justify-content-between border border-white transition-all hover-bg-white hover-shadow-sm">
+              <div className="d-flex align-items-center gap-4">
+                <div className="rounded-4 overflow-hidden shadow-sm border" style={{width:'60px', height:'60px'}}>
+                  <img src={art.cover_image || 'https://picsum.photos/100'} className="w-100 h-100 object-fit-cover" alt="" />
+                </div>
                 <div>
-                  <h6 className="fw-black mb-1 text-slate-900">{art.title}</h6>
-                  <span className="badge bg-light text-primary rounded-pill px-2 py-1 fw-black small" style={{fontSize: '9px'}}>{art.category}</span>
+                  <div className="fw-black h6 mb-1 text-slate-900">{art.title}</div>
+                  <div className="d-flex gap-2 align-items-center">
+                    <span className="badge bg-white text-primary rounded-pill fw-black border small" style={{fontSize:'9px'}}>{art.category}</span>
+                    <span className="small text-muted fw-bold" style={{fontSize:'10px'}}>{new Date(art.created_at).toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
-              <div className="d-flex gap-2">
-                <button onClick={() => { setEditArt({...art}); setEditingId(art.id); setShowEditor(true); }} className="btn btn-light rounded-circle p-2 text-muted"><Edit size={16}/></button>
-                <button onClick={() => { if(confirm('删除文章?')) { const n = articles.filter(a => a.id !== art.id); setArticles(n); localStorage.setItem('site_articles', JSON.stringify(n)); } }} className="btn btn-light rounded-circle p-2 text-danger"><Trash2 size={16}/></button>
+              <div className="d-flex gap-2 pe-2">
+                <button onClick={() => { setEditArt(art); setEditingId(art.id); setShowEditor(true); }} className="btn btn-white shadow-sm rounded-circle p-2 text-dark"><Edit size={16}/></button>
+                <button onClick={() => handleDelete(art.id)} className="btn btn-white shadow-sm rounded-circle p-2 text-danger"><Trash2 size={16}/></button>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="text-center py-5 opacity-50 fw-black text-muted text-uppercase tracking-widest">暂无发布的文章内容</div>
+          )}
         </div>
       )}
     </div>
   );
 };
 
-// --- 子组件：工具配置 (保持不变) ---
 const ManageTools = () => {
   const [tools, setTools] = useState<any[]>([]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTool, setEditTool] = useState({ 
+    id: '', 
     name: '', 
     description: '', 
-    route: '',
-    iconName: 'Zap', 
+    icon_name: 'Zap', 
+    category: '开发辅助', 
     is_premium: false, 
-    category: '开发' 
+    price: 0,
+    external_url: '' // 新增字段
   });
 
-  useEffect(() => {
-    const saved = localStorage.getItem('site_tools');
-    if (saved && JSON.parse(saved).length > 0) {
-      setTools(JSON.parse(saved));
-    } else {
-      const defaults = [
-        { id: 'markdown', name: 'Markdown 编辑器', description: '实时的 Markdown 转换与预览工具。', route: 'markdown', iconName: 'Code', is_premium: false, category: '开发' },
-        { id: 'json-format', name: 'JSON 格式化', description: '让杂乱的 JSON 字符串变得清晰易读。', route: 'json-format', iconName: 'FileJson', is_premium: false, category: '数据' },
-        { id: 'gemini-ai', name: 'AI 文案生成', description: '基于 Gemini API 的智能文案助手。', route: 'gemini-ai', iconName: 'Sparkles', is_premium: true, category: '智能' }
-      ];
-      setTools(defaults);
-      localStorage.setItem('site_tools', JSON.stringify(defaults));
-    }
-  }, []);
-
-  const handleSave = () => {
-    if (!editTool.name) return alert('请填写名称');
-    let newList;
-    const toolId = editTool.route || editTool.name.toLowerCase().replace(/\s/g, '-');
-    
-    const toolData = { ...editTool, id: toolId };
-
-    if (editingId) {
-      newList = tools.map(t => t.id === editingId ? toolData : t);
-    } else {
-      newList = [toolData, ...tools];
-    }
-    setTools(newList);
-    localStorage.setItem('site_tools', JSON.stringify(newList));
-    setShowEditor(false);
-    setEditingId(null);
+  const fetchTools = async () => {
+    const { data } = await supabase.from('tools').select('*').order('created_at', { ascending: false });
+    setTools(data || []);
   };
 
-  const icons = ['Code', 'FileJson', 'Sparkles', 'Calculator', 'Zap', 'Globe', 'Database', 'Layers'];
+  useEffect(() => { fetchTools(); }, []);
+
+  const handleSave = async () => {
+    if (!editTool.id || !editTool.name) return alert('请填入工具ID和名称');
+    
+    let error;
+    if (editingId) {
+      const { error: err } = await supabase.from('tools').update(editTool).eq('id', editingId);
+      error = err;
+    } else {
+      const { error: err } = await supabase.from('tools').insert([editTool]);
+      error = err;
+    }
+
+    if (error) alert('保存失败 (可能是ID重复): ' + error.message);
+    else {
+      setShowEditor(false);
+      fetchTools();
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('确定要移除这个工具配置吗？')) {
+      await supabase.from('tools').delete().eq('id', id);
+      fetchTools();
+    }
+  };
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-5">
-        <h2 className="fw-black h3 mb-0 text-slate-900">工具配置</h2>
-        {!showEditor && (
-          <button onClick={() => { setEditTool({ name: '', description: '', route: '', iconName: 'Zap', is_premium: false, category: '开发' }); setEditingId(null); setShowEditor(true); }} className="btn btn-dark rounded-pill px-4 py-2 fw-black small text-uppercase tracking-widest d-flex align-items-center gap-2 shadow">
-            <Plus size={18} /> 新增工具
-          </button>
-        )}
-      </div>
+       <div className="d-flex justify-content-between align-items-center mb-5">
+         <h2 className="fw-black h3 mb-0 tracking-tighter">工具配置</h2>
+         {!showEditor && (
+           <button onClick={() => { 
+             setEditTool({ id: '', name: '', description: '', icon_name: 'Zap', category: '开发辅助', is_premium: false, price: 0, external_url: '' }); 
+             setEditingId(null); 
+             setShowEditor(true); 
+           }} className="btn btn-blue rounded-pill px-4 fw-black">
+             <Plus size={18} className="me-1"/> 新增工具
+           </button>
+         )}
+       </div>
 
-      {showEditor ? (
-        <div className="animate-fade-in">
-          <button onClick={() => setShowEditor(false)} className="btn btn-link text-muted text-decoration-none fw-black small text-uppercase tracking-widest p-0 mb-4 d-flex align-items-center gap-2">
-            <ChevronLeft size={16} /> 返回列表
-          </button>
-
-          <div className="row g-4">
-            <div className="col-lg-7">
-              <div className="mb-4">
-                <div className="form-label-custom">
-                  <span className="label-zh">工具名称</span>
-                  <span className="label-en">Tool Name</span>
+       {showEditor ? (
+         <div className="animate-fade-in">
+           <button onClick={() => setShowEditor(false)} className="btn btn-link text-muted mb-4 p-0 fw-bold text-decoration-none">
+             <ChevronLeft size={16}/> 取消返回
+           </button>
+           
+           <div className="row g-4">
+             <div className="col-md-6">
+                <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest"><Hash size={12} className="me-1"/> 工具唯一 ID (内部路由)</label>
+                <input className="form-control py-3 rounded-4 px-4 shadow-sm border-light fw-bold" placeholder="例如: markdown" disabled={!!editingId} value={editTool.id} onChange={e => setEditTool({...editTool, id: e.target.value})} />
+             </div>
+             <div className="col-md-6">
+                <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest">工具显示名称</label>
+                <input className="form-control py-3 rounded-4 px-4 shadow-sm border-light fw-bold" placeholder="例如: Markdown 编辑器" value={editTool.name} onChange={e => setEditTool({...editTool, name: e.target.value})} />
+             </div>
+             <div className="col-12">
+                <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest"><LinkIcon size={12} className="me-1"/> 外部工具链接 (可选)</label>
+                <input className="form-control py-3 rounded-4 px-4 shadow-sm border-light fw-bold" placeholder="如果填写，将直接跳转到该 URL，忽略内部 ID" value={editTool.external_url} onChange={e => setEditTool({...editTool, external_url: e.target.value})} />
+             </div>
+             <div className="col-md-6">
+                <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest">分类</label>
+                <input className="form-control py-3 rounded-4 px-4 shadow-sm border-light fw-bold" placeholder="开发 / 数据 / AI" value={editTool.category} onChange={e => setEditTool({...editTool, category: e.target.value})} />
+             </div>
+             <div className="col-md-6">
+                <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest">图标名 (Lucide)</label>
+                <select className="form-select py-3 rounded-4 px-4 shadow-sm border-light fw-bold" value={editTool.icon_name} onChange={e => setEditTool({...editTool, icon_name: e.target.value})}>
+                  <option>Zap</option>
+                  <option>Code</option>
+                  <option>FileJson</option>
+                  <option>Sparkles</option>
+                  <option>Calculator</option>
+                  <option>Globe</option>
+                  <option>Database</option>
+                  <option>Layers</option>
+                  <option>Wrench</option>
+                </select>
+             </div>
+             <div className="col-12">
+                <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest">工具功能描述</label>
+                <textarea className="form-control py-3 rounded-4 px-4 shadow-sm border-light fw-medium" rows={2} placeholder="简单介绍一下这个工具的用途" value={editTool.description} onChange={e => setEditTool({...editTool, description: e.target.value})} />
+             </div>
+             <div className="col-md-6 d-flex align-items-center">
+                <div className="form-check form-switch bg-light p-3 rounded-4 w-100 border border-white shadow-sm">
+                  <input className="form-check-input ms-0 me-3" type="checkbox" role="switch" checked={editTool.is_premium} onChange={e => setEditTool({...editTool, is_premium: e.target.checked})} />
+                  <label className="form-check-label fw-black text-uppercase small tracking-widest d-flex align-items-center gap-2">
+                    <Crown size={14} className="text-warning" /> VIP 专属工具
+                  </label>
                 </div>
-                <input className="form-control input-group-refined border-2 py-3 px-4 fw-black" placeholder="输入工具名称..." value={editTool.name} onChange={e => setEditTool({...editTool, name: e.target.value})} />
-              </div>
-              <div className="mb-4">
-                <div className="form-label-custom">
-                  <span className="label-zh">工具路径/链接</span>
-                  <span className="label-en">Tool Route/ID</span>
-                </div>
-                <div className="input-group input-group-refined border-2 shadow-sm overflow-hidden">
-                  <span className="input-group-text bg-transparent border-0 ps-3 pe-2 text-muted">
-                    <LinkIcon size={16} />
-                  </span>
-                  <input className="form-control border-0 py-3 px-3 fw-bold small" placeholder="例如: markdown (空则按名称生成)" value={editTool.route} onChange={e => setEditTool({...editTool, route: e.target.value})} />
-                </div>
-                <div className="text-muted small fw-bold mt-2 ps-1" style={{fontSize: '10px'}}>此 ID 决定了工具在详情页的渲染逻辑。</div>
-              </div>
-              <div className="mb-4">
-                <div className="form-label-custom">
-                  <span className="label-zh">核心描述</span>
-                  <span className="label-en">Description</span>
-                </div>
-                <textarea className="form-control input-group-refined border-2 py-3 px-4 fw-bold" rows={3} placeholder="工具功能简述..." value={editTool.description} onChange={e => setEditTool({...editTool, description: e.target.value})} />
-              </div>
-            </div>
-
-            <div className="col-lg-5">
-              <div className="bg-light rounded-5 p-4 border border-2 border-dashed">
-                <div className="mb-4">
-                  <div className="form-label-custom">
-                    <span className="label-zh">图标类型</span>
-                    <span className="label-en">Icon Set</span>
-                  </div>
-                  <select className="form-select input-group-refined border-2 py-3 px-3 fw-black" value={editTool.iconName} onChange={e => setEditTool({...editTool, iconName: e.target.value})}>
-                    {icons.map(icon => <option key={icon} value={icon}>{icon}</option>)}
-                  </select>
-                </div>
-                
-                <div className="mb-5">
-                  <div className="form-label-custom">
-                    <span className="label-zh">付费控制</span>
-                    <span className="label-en">Premium Status</span>
-                  </div>
-                  <div className="d-flex align-items-center gap-3 bg-white p-3 rounded-4 border shadow-sm">
-                    <div className={`p-2 rounded-3 ${editTool.is_premium ? 'bg-warning text-dark' : 'bg-light text-muted'}`}>
-                      <Crown size={18} />
+             </div>
+             <div className="col-md-6">
+                <label className="fw-black small text-uppercase mb-2 text-muted tracking-widest"><DollarSign size={12} className="me-1"/> 模拟定价 (¥)</label>
+                <input type="number" className="form-control py-3 rounded-4 px-4 shadow-sm border-light fw-bold" value={editTool.price} onChange={e => setEditTool({...editTool, price: Number(e.target.value)})} />
+             </div>
+           </div>
+           <button onClick={handleSave} className="btn btn-blue w-100 py-3 rounded-4 fw-black shadow-lg mt-5">保存工具配置</button>
+         </div>
+       ) : (
+         <div className="row g-3">
+           {tools.length > 0 ? tools.map(tool => (
+             <div key={tool.id} className="col-12">
+               <div className="bg-light p-4 rounded-5 border border-white d-flex justify-content-between align-items-center transition-all hover-bg-white hover-shadow-sm">
+                  <div className="d-flex align-items-center gap-4">
+                    <div className="bg-white rounded-4 p-3 shadow-sm text-blue-600 d-flex align-items-center justify-content-center" style={{width:'56px', height:'56px'}}>
+                      <Wrench size={24} />
                     </div>
-                    <div className="flex-grow-1 fw-black small">需 VIP 解锁</div>
-                    <div className="form-check form-switch m-0">
-                      <input className="form-check-input" type="checkbox" checked={editTool.is_premium} onChange={e => setEditTool({...editTool, is_premium: e.target.checked})} />
-                    </div>
-                  </div>
-                </div>
-
-                <button onClick={handleSave} className="btn btn-blue w-100 py-3 rounded-4 shadow-lg d-flex align-items-center justify-content-center gap-2">
-                  <Check size={20} /> {editingId ? '保存更改' : '立即发布工具'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="row g-3">
-          {tools.map(tool => (
-            <div key={tool.id} className="col-md-6">
-              <div className="bg-white border rounded-5 p-4 d-flex align-items-start justify-content-between h-100 transition-all hover-shadow-sm">
-                <div className="d-flex gap-3">
-                  <div className="bg-light rounded-4 p-3 d-flex align-items-center justify-content-center" style={{width: '56px', height: '56px'}}>
-                    <Wrench size={24} className="text-slate-900" />
-                  </div>
-                  <div>
-                    <h6 className="fw-black mb-1 d-flex align-items-center gap-2">
-                      {tool.name}
-                      {tool.is_premium && <Crown size={12} className="text-warning" />}
-                    </h6>
-                    <p className="small text-muted mb-1 fw-bold line-clamp-2" style={{lineHeight: '1.4'}}>{tool.description}</p>
-                    <div className="d-flex align-items-center gap-1 text-blue-600 small fw-black text-uppercase" style={{fontSize: '9px'}}>
-                      <LinkIcon size={10} /> /{tool.id}
+                    <div>
+                      <div className="d-flex align-items-center gap-2">
+                        <h5 className="fw-black mb-0 text-slate-900">{tool.name}</h5>
+                        {tool.is_premium && <Crown size={14} className="text-warning" />}
+                        {tool.external_url && <span title="外部链接"><LinkIcon size={12} className="text-muted" /></span>}
+                      </div>
+                      <div className="text-muted small fw-bold text-uppercase tracking-widest mt-1" style={{fontSize: '9px'}}>ID: {tool.id} · {tool.category}</div>
                     </div>
                   </div>
-                </div>
-                <div className="d-flex gap-1">
-                  <button onClick={() => { setEditTool({...tool, route: tool.id}); setEditingId(tool.id); setShowEditor(true); }} className="btn btn-light rounded-circle p-2 text-muted"><Edit size={14}/></button>
-                  <button onClick={() => { if(confirm('删除工具?')) { const n = tools.filter(t => t.id !== tool.id); setTools(n); localStorage.setItem('site_tools', JSON.stringify(n)); } }} className="btn btn-light rounded-circle p-2 text-danger"><Trash2 size={14}/></button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                  <div className="d-flex gap-2 pe-1">
+                    <button onClick={() => { setEditTool(tool); setEditingId(tool.id); setShowEditor(true); }} className="btn btn-white shadow-sm rounded-circle p-2"><Edit size={16}/></button>
+                    <button onClick={() => handleDelete(tool.id)} className="btn btn-white shadow-sm rounded-circle p-2 text-danger"><Trash2 size={16}/></button>
+                  </div>
+               </div>
+             </div>
+           )) : (
+             <div className="col-12 text-center py-5 opacity-50 fw-black text-muted text-uppercase tracking-widest">暂无配置工具数据</div>
+           )}
+         </div>
+       )}
     </div>
   );
 };

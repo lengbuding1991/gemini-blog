@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Crown
 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 interface HomePageProps {
   user: any | null;
@@ -24,34 +25,15 @@ const HomePage: React.FC<HomePageProps> = ({ user }) => {
   const [articles, setArticles] = useState<any[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('site_articles');
-    if (saved) {
-      const list = JSON.parse(saved);
-      setArticles(list.slice(0, 2));
-    } else {
-      const defaults = [
-        { 
-          id: '1', 
-          title: '现代前端架构演进之路', 
-          excerpt: '探讨前端架构在过去十年的变化与未来趋势。', 
-          content: '## 架构的演进\n\n从最初的 jQuery 时代到现在的 React/Vue 大行其道...',
-          category: '技术架构', 
-          date: '2024-03-20', 
-          cover_image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800' 
-        },
-        { 
-          id: '2', 
-          title: '深度学习在生产环境的落地挑战', 
-          excerpt: '分享部署 AI 模型时遇到的性能瓶颈。', 
-          content: '## AI 的挑战\n\n将模型部署到生产环境不仅仅是模型训练的问题...',
-          category: '人工智能', 
-          date: '2024-03-18', 
-          cover_image: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&q=80&w=800' 
-        }
-      ];
-      setArticles(defaults);
-      localStorage.setItem('site_articles', JSON.stringify(defaults));
-    }
+    const fetchLatestArticles = async () => {
+      const { data } = await supabase
+        .from('articles')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(2);
+      if (data) setArticles(data);
+    };
+    fetchLatestArticles();
   }, []);
 
   const toolsPreview = [
@@ -85,11 +67,11 @@ const HomePage: React.FC<HomePageProps> = ({ user }) => {
               <div className="d-flex flex-wrap justify-content-center justify-content-lg-start gap-4 mb-5">
                 <div className="d-flex align-items-center gap-2">
                   <Activity size={20} className="text-blue-600" />
-                  <span className="small fw-black text-slate-900 text-uppercase tracking-widest">42+ 深度思考</span>
+                  <span className="small fw-black text-slate-900 text-uppercase tracking-widest">REAL-TIME SYNC</span>
                 </div>
                 <div className="d-flex align-items-center gap-2">
                   <Zap size={20} className="text-warning" />
-                  <span className="small fw-black text-slate-900 text-uppercase tracking-widest">12+ 智能工具</span>
+                  <span className="small fw-black text-slate-900 text-uppercase tracking-widest">CLOUD DATABASE</span>
                 </div>
               </div>
 
@@ -121,7 +103,7 @@ const HomePage: React.FC<HomePageProps> = ({ user }) => {
                      <p className="mb-1 text-white opacity-50 fw-bold">$ session auth --user={user?.role || 'guest'}</p>
                      <p className="mb-1 text-white fw-black">&gt; Identity Confirmed.</p>
                      <p className="mb-1 text-success fw-black">&gt; Access Level: {user?.role === 'admin' ? 'ROOT' : user?.is_premium_user ? 'VIP' : 'USER'}</p>
-                     <p className="mb-1 text-warning fw-black">&gt; AI Engine: Active</p>
+                     <p className="mb-1 text-warning fw-black">&gt; Supabase: Connected</p>
                    </div>
                 </div>
               </div>
@@ -148,14 +130,14 @@ const HomePage: React.FC<HomePageProps> = ({ user }) => {
               <div key={article.id} className="col-lg-6">
                 <div className="card border-0 bg-light rounded-5 p-3 h-100 transition-all shadow-sm hover-shadow">
                   <div className="rounded-5 overflow-hidden mb-4" style={{ height: '320px' }}>
-                    <img src={article.cover_image} className="w-100 h-100 object-fit-cover transition-transform" alt={article.title} />
+                    <img src={article.cover_image || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800'} className="w-100 h-100 object-fit-cover transition-transform" alt={article.title} />
                   </div>
                   <div className="px-3 pb-3">
                     <div className="d-flex align-items-center gap-3 mb-3">
                       <span className="badge bg-white text-primary rounded-pill fw-black px-3 py-2 shadow-sm small">
                         <Tag size={12} className="me-1" /> {article.category}
                       </span>
-                      <span className="small text-muted fw-bold"><Calendar size={12} className="me-1" /> {article.date}</span>
+                      <span className="small text-muted fw-bold"><Calendar size={12} className="me-1" /> {new Date(article.created_at).toLocaleDateString()}</span>
                     </div>
                     <h3 className="h4 fw-black mb-3 text-slate-900 tracking-tight">
                       <Link to={`/articles/${article.id}`} className="text-decoration-none text-slate-900 hover-blue">{article.title}</Link>
@@ -169,7 +151,7 @@ const HomePage: React.FC<HomePageProps> = ({ user }) => {
               </div>
             )) : (
               <div className="col-12 text-center py-5">
-                <p className="text-muted fw-black text-uppercase tracking-widest opacity-50">正在同步博文内容...</p>
+                <p className="text-muted fw-black text-uppercase tracking-widest opacity-50">还没有发布任何文章...</p>
               </div>
             )}
           </div>
