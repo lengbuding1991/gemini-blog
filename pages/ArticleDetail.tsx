@@ -21,7 +21,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ user }) => {
     const savedArticles = localStorage.getItem('site_articles');
     if (savedArticles) {
       const list = JSON.parse(savedArticles);
-      const found = list.find((a: any) => a.id === id);
+      const found = list.find((a: any) => String(a.id) === String(id));
       if (found) setArticle(found);
     }
   }, [id]);
@@ -39,14 +39,22 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ user }) => {
     setCommentText('');
   };
 
-  const htmlContent = useMemo(() => article ? marked.parse(article.content) : '', [article]);
+  const htmlContent = useMemo(() => {
+    if (!article || !article.content) return '';
+    try {
+      return marked.parse(article.content);
+    } catch (e) {
+      console.error('Markdown 渲染错误:', e);
+      return article.content;
+    }
+  }, [article]);
 
-  if (!article) return <div className="container py-10 text-center fw-black text-muted text-uppercase tracking-widest">加载中...</div>;
+  if (!article) return <div className="container py-5 text-center fw-black text-muted text-uppercase tracking-widest min-vh-50 d-flex align-items-center justify-content-center">正在加载文章内容...</div>;
 
   return (
     <div className="container py-5 animate-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-5">
-        <Link to="/articles" className="btn btn-white border-light bg-white rounded-pill shadow-sm px-4 py-2 d-flex align-items-center gap-2 fw-black small text-uppercase tracking-widest">
+        <Link to="/articles" className="btn btn-white border-light bg-white rounded-pill shadow-sm px-4 py-2 d-flex align-items-center gap-2 fw-black small text-uppercase tracking-widest text-decoration-none">
           <ChevronLeft size={16} /> 返回列表
         </Link>
         <button className="btn btn-white border-light bg-white rounded-circle shadow-sm p-2"><Share2 size={16} /></button>
@@ -74,10 +82,11 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ user }) => {
           </div>
 
           <div className="article-content" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+          {!htmlContent && <p className="text-muted italic">暂无正文内容。</p>}
         </div>
       </div>
 
-      <section className="bg-dark text-white rounded-5 p-4 p-lg-10 shadow-2xl">
+      <section className="bg-dark text-white rounded-5 p-4 p-lg-10 shadow-2xl mb-5">
         <h3 className="fw-black mb-5 d-flex align-items-center gap-3">
           <MessageCircle className="text-primary" /> 交流互动 <span className="opacity-50 small">({comments.length})</span>
         </h3>
@@ -111,7 +120,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ user }) => {
           ) : (
             <div className="text-center py-5">
               <p className="text-secondary fw-bold mb-4">请登录后参与讨论</p>
-              <Link to="/auth" className="btn btn-light rounded-pill px-5 fw-black small text-uppercase tracking-widest">前往登录</Link>
+              <Link to="/auth" className="btn btn-light rounded-pill px-5 fw-black small text-uppercase tracking-widest text-decoration-none">前往登录</Link>
             </div>
           )}
         </div>

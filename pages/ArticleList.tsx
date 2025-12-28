@@ -12,9 +12,33 @@ const ArticleList: React.FC = () => {
       setArticles(JSON.parse(savedArticles));
     } else {
       const defaults = [
-        { id: '1', title: '现代前端架构演进之路', excerpt: '探讨前端架构在过去十年的变化与未来趋势。', category: '技术架构', date: '2024-03-20', cover_image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800' },
-        { id: '2', title: '深度学习在生产环境的落地挑战', excerpt: '分享部署 AI 模型时遇到的性能瓶颈。', category: '人工智能', date: '2024-03-18', cover_image: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&q=80&w=800' },
-        { id: '3', title: 'Supabase 实战指南：从入门到进阶', excerpt: '如何利用开源 Firebase 替代品快速构建全栈应用。', category: '实战教程', date: '2024-03-15', cover_image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc51?auto=format&fit=crop&q=80&w=800' },
+        { 
+          id: '1', 
+          title: '现代前端架构演进之路', 
+          excerpt: '探讨前端架构在过去十年的变化与未来趋势。', 
+          content: '## 架构的演进\n\n从最初的 jQuery 时代到现在的 React/Vue 大行其道，前端架构经历了翻天覆地的变化。\n\n### 核心逻辑\n\n1. 组件化开发\n2. 状态管理\n3. 声明式 UI\n\n未来，我们将看到更多边缘计算与前端的结合。',
+          category: '技术架构', 
+          date: '2024-03-20', 
+          cover_image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800' 
+        },
+        { 
+          id: '2', 
+          title: '深度学习在生产环境的落地挑战', 
+          excerpt: '分享部署 AI 模型时遇到的性能瓶颈。', 
+          content: '## AI 的挑战\n\n将模型部署到生产环境不仅仅是模型训练的问题，更多的是工程化挑战。\n\n- 推理延迟优化\n- 显存占用平衡\n- 自动化流水线\n\n我们需要更高效的推理引擎，例如 Gemini。',
+          category: '人工智能', 
+          date: '2024-03-18', 
+          cover_image: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&q=80&w=800' 
+        },
+        { 
+          id: '3', 
+          title: 'Supabase 实战指南：从入门到进阶', 
+          excerpt: '如何利用开源 Firebase 替代品快速构建全栈应用。', 
+          content: '## 为什么选择 Supabase？\n\n它是 Postgres 的力量，加上现代化的 API 层。它可以让你在几分钟内启动一个带 Auth 和 DB 的应用。',
+          category: '实战教程', 
+          date: '2024-03-15', 
+          cover_image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc51?auto=format&fit=crop&q=80&w=800' 
+        },
       ];
       setArticles(defaults);
       localStorage.setItem('site_articles', JSON.stringify(defaults));

@@ -52,21 +52,17 @@
             z-index: 1050;
         }
         
-        /* 移动端样式重构：去除极圆药丸感，改用圆角矩形 */
         @media (max-width: 991.98px) {
             .navbar-refined {
-                border-radius: 1.25rem !important; /* 初始即为圆角矩形 */
+                border-radius: 1.25rem !important;
                 margin: 1rem auto;
                 width: 92%;
                 padding: 0.75rem 1.2rem;
             }
-            
-            /* 展开时保持圆角一致，避免形变 */
             .navbar-refined:has(.show) {
                 border-radius: 1.25rem !important;
                 padding-bottom: 1.5rem;
             }
-
             .navbar-collapse {
                 margin-top: 0.75rem;
                 border-top: 1px solid rgba(0, 0, 0, 0.04);
@@ -97,15 +93,12 @@
             letter-spacing: 0.05em;
         }
 
-        /* 移动端菜单项点击区域优化 */
         @media (max-width: 991.98px) {
             .nav-link-refined {
                 padding: 0.8rem 0.5rem !important;
                 font-size: 0.95rem;
             }
-            .nav-link-refined::after {
-                display: none; /* 移动端隐藏下划线，保持清爽 */
-            }
+            .nav-link-refined::after { display: none; }
         }
 
         .nav-link-refined::after {
@@ -121,16 +114,12 @@
             border-radius: 10px;
         }
 
-        .nav-link-refined:hover::after {
-            width: 25px;
-        }
-
+        .nav-link-refined:hover::after { width: 25px; }
         .nav-link-refined:hover {
             color: var(--cp-blue-600) !important;
             transform: translateY(-1px);
         }
 
-        /* 渐变文字 */
         .text-gradient {
             background: linear-gradient(135deg, #0f172a 10%, #2563eb 90%);
             -webkit-background-clip: text;
@@ -171,7 +160,6 @@
             box-shadow: 0 20px 40px -8px rgba(37, 99, 235, 0.5);
         }
 
-        /* 标签排版系统：分离中英文 */
         .form-label-custom {
             display: flex;
             align-items: baseline;
@@ -184,7 +172,6 @@
             font-weight: 900;
             font-size: 0.95rem;
             color: var(--cp-slate-900);
-            letter-spacing: 0.02em;
         }
 
         .label-en {
@@ -202,7 +189,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* 输入框焦点优化 */
         .input-group-refined {
             background: #f8fafc;
             border-radius: 1.25rem;
@@ -221,17 +207,18 @@
             box-shadow: none !important;
         }
 
-        /* 菜单切换按钮优化 */
         .navbar-toggler {
             border: none !important;
             padding: 0.5rem;
             border-radius: 0.75rem;
-            transition: background 0.2s;
         }
-        .navbar-toggler:active, .navbar-toggler:focus {
-            box-shadow: none !important;
-            background: rgba(0,0,0,0.05);
+        
+        .article-content {
+            line-height: 1.8;
+            font-size: 1.1rem;
         }
+        .article-content h2 { margin-top: 2rem; margin-bottom: 1rem; font-weight: 900; }
+        .article-content p { margin-bottom: 1.5rem; }
     </style>
 <script type="importmap">
 {
@@ -253,10 +240,13 @@
     <script>
         window.addEventListener('scroll', function() {
             const nav = document.querySelector('.navbar-refined');
-            if (window.scrollY > 60) {
-                nav.classList.add('scrolled');
-            } else {
-                nav.classList.remove('scrolled');
+            // 关键修复：增加 nav 存在的判断
+            if (nav) {
+                if (window.scrollY > 60) {
+                    nav.classList.add('scrolled');
+                } else {
+                    nav.classList.remove('scrolled');
+                }
             }
         });
     </script>
