@@ -1,11 +1,42 @@
-<div align="center">
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+# 冷丶布丁的个人空间 - 完整技术博客与工具站说明文档
 
-  <h1>Built with AI Studio</h2>
+这是一个由 **冷丶布丁** 开发，基于 **React 19**, **Tailwind CSS**, 和 **Gemini API** 构建的全栈个人网站项目。采用了前后端分离的思想，所有数据通过 API 进行交互。
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 1. 核心功能说明
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+*   **文章展示与管理**：
+    *   管理员（冷丶布丁）可以在后台直接发布、编辑 Markdown 格式的文章。
+    *   用户可以浏览文章列表并阅读详情。
+*   **交互式评论系统**：
+    *   访客可以查看评论。
+    *   注册并登录后的用户可以发表评论，参与话题讨论。
+*   **个人工具站**：
+    *   集成多种实用工具（如 Markdown 编辑器、JSON 格式化、AI 智能引擎等）。
+    *   **权限控制**：工具必须登录后才能使用。
+    *   **付费功能**：部分高级工具标记为 `PRO`，需要特定权限或模拟支付流程后解锁。
+*   **后台管理系统 (Dashboard)**：
+    *   提供美观的管理侧边栏。
+    *   包含文章、工具的数据统计、CRUD 管理功能。
 
-</div>
+## 2. 技术栈架构
+
+*   **前端**: React (TypeScript) + React Router 7
+*   **样式**: Tailwind CSS (移动优先响应式设计)
+*   **图标**: Lucide React
+*   **AI**: Google Gemini API
+*   **存储**: LocalStorage (演示版本) / 可扩展至 Supabase
+
+## 3. 快速上手指南
+
+1.  **访问项目**：运行后直接进入首页。
+2.  **管理员登录**：
+    *   进入 `/auth` 页面。
+    *   输入账户：`admin@geek.com` 密码：`admin`。
+    *   点击登录后，导航栏会出现“管理后台”按钮。
+3.  **发布内容**：
+    *   进入管理后台 -> 文章管理 -> 点击“撰写新博文”。
+    *   填写标题和 Markdown 内容，点击发布即可。
+
+---
+*由 AI 驱动，为 冷丶布丁 打造的个人空间模版 - 致力打造最优雅的个人技术窗口。*
