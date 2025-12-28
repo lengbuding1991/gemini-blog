@@ -23,14 +23,18 @@ export interface Tool {
 export interface Comment {
   id: string;
   article_id: string;
-  user_name: string;
+  user_id: string | null;
+  user_name: string | null;
   content: string;
   created_at: string;
+  parent_id?: string | null; // For replies
+  replies?: Comment[];      // For nesting on client-side
 }
 
 export interface UserProfile {
   id: string;
   email: string;
-  role: 'admin' | 'user';
-  is_premium_user: boolean;
+  role: 'admin' | 'user' | 'vip';
+  display_name?: string;
+  avatar_url?: string;
 }

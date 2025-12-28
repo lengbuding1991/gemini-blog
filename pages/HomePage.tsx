@@ -13,7 +13,10 @@ import {
   Calendar,
   Tag,
   ShieldCheck,
-  Crown
+  Crown,
+  Mail,
+  Github,
+  Twitter
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -51,7 +54,7 @@ const HomePage: React.FC<HomePageProps> = ({ user }) => {
               <div className="d-inline-flex align-items-center gap-3 bg-white border px-4 py-2 rounded-pill shadow-sm mb-4">
                 {user?.role === 'admin' ? (
                   <><ShieldCheck size={14} className="text-blue-600" /> <span className="text-slate-900 fw-black text-uppercase tracking-widest" style={{fontSize: '10px'}}>ADMIN ACCESS GRANTED</span></>
-                ) : user?.is_premium_user ? (
+                ) : user?.role === 'vip' ? (
                   <><Crown size={14} className="text-warning" /> <span className="text-slate-900 fw-black text-uppercase tracking-widest" style={{fontSize: '10px'}}>WELCOME BACK VIP</span></>
                 ) : (
                   <><span className="badge bg-blue-600 rounded-pill px-2">v2.5</span> <span className="text-muted fw-black text-uppercase tracking-widest" style={{fontSize: '10px'}}>SYSTEM ONLINE / 极客空间</span></>
@@ -102,7 +105,7 @@ const HomePage: React.FC<HomePageProps> = ({ user }) => {
                    <div className="font-monospace small text-info">
                      <p className="mb-1 text-white opacity-50 fw-bold">$ session auth --user={user?.role || 'guest'}</p>
                      <p className="mb-1 text-white fw-black">&gt; Identity Confirmed.</p>
-                     <p className="mb-1 text-success fw-black">&gt; Access Level: {user?.role === 'admin' ? 'ROOT' : user?.is_premium_user ? 'VIP' : 'USER'}</p>
+                     <p className="mb-1 text-success fw-black">&gt; Access Level: {user?.role === 'admin' ? 'ROOT' : user?.role === 'vip' ? 'VIP' : 'USER'}</p>
                      <p className="mb-1 text-warning fw-black">&gt; Supabase: Connected</p>
                    </div>
                 </div>
@@ -193,6 +196,33 @@ const HomePage: React.FC<HomePageProps> = ({ user }) => {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 联系我区域 */}
+      <section className="py-5 bg-white border-top">
+        <div className="container text-center py-lg-5">
+          <div className="row justify-content-center">
+            <div className="col-lg-8">
+              <h2 className="fw-black display-5 tracking-tighter text-slate-900 mb-3">
+                与我联系<span className="text-blue-600">.</span>
+              </h2>
+              <p className="lead text-muted fw-medium mb-5">
+                我总是乐于探索新的想法、合作项目或只是聊聊技术。如果你有任何问题、建议，或者想和我一起创造一些酷的东西，请随时与我联系。
+              </p>
+              <div className="d-flex justify-content-center flex-wrap gap-4">
+                <Link to="/contact" className="btn btn-dark rounded-pill px-5 py-3 fw-black d-flex align-items-center gap-2">
+                  <Mail size={18} /> 给我发邮件
+                </Link>
+                <a href="#" className="btn btn-outline-dark rounded-pill px-5 py-3 fw-black d-flex align-items-center gap-2">
+                  <Github size={18} /> GitHub
+                </a>
+                <a href="#" className="btn btn-outline-dark rounded-pill px-5 py-3 fw-black d-flex align-items-center gap-2">
+                  <Twitter size={18} /> Twitter
+                </a>
               </div>
             </div>
           </div>

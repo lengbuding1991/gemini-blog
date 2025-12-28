@@ -1,10 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Navigate, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
   Plus, Edit, Trash2, BarChart3, FileText, Wrench, ChevronLeft, Zap, Crown, 
-  Image as ImageIcon, Tag, Hash, DollarSign, Upload, Link as LinkIcon, Loader2
+  Image as ImageIcon, Tag, Hash, DollarSign, Upload, Link as LinkIcon, Loader2, X
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+
+const ConfirmModal: React.FC<{
+  isOpen: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  title: string;
+  confirmText?: string;
+  confirmVariant?: 'danger' | 'primary' | 'dark';
+  children: React.ReactNode;
+}> = ({ isOpen, onConfirm, onCancel, title, children, confirmText = '确认', confirmVariant = 'danger' }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-3" style={{backgroundColor: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(8px)'}}>
+      <div className="bg-white rounded-5 shadow-2xl p-4 p-lg-5 animate-fade-in" style={{maxWidth: '450px', width: '90%'}}>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h4 className="fw-black tracking-tight mb-0 text-slate-900">{title}</h4>
+          <button onClick={onCancel} className="btn btn-light rounded-circle p-2 lh-1"><X size={20}/></button>
+        </div>
+        <p className="text-muted fw-medium mb-4">{children}</p>
+        <div className="d-flex gap-3">
+          <button onClick={onConfirm} className={`btn btn-${confirmVariant} w-100 py-3 rounded-4 fw-black text-uppercase tracking-widest small shadow-sm`}>{confirmText}</button>
+          <button onClick={onCancel} className="btn btn-light w-100 py-3 rounded-4 fw-black text-uppercase tracking-widest small shadow-sm">取消</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 interface AdminDashboardProps {
   user: { id: string; email: string; role: string } | null;
@@ -77,6 +106,10 @@ const ManageArticles = ({ authorId }: { authorId: string }) => {
   const [showEditor, setShowEditor] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [articleToDelete, setArticleToDelete] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editArt, setEditArt] = useState({ 
     title: '', 
@@ -86,12 +119,12 @@ const ManageArticles = ({ authorId }: { authorId: string }) => {
     category: '技术架构' 
   });
 
-  const fetchArticles = async () => {
+  const fetchArticles = useCallback(async () => {
     const { data } = await supabase.from('articles').select('*').order('created_at', { ascending: false });
     setArticles(data || []);
-  };
+  }, []);
 
-  useEffect(() => { fetchArticles(); }, []);
+  useEffect(() => { fetchArticles(); }, [fetchArticles]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -149,12 +182,41 @@ const ManageArticles = ({ authorId }: { authorId: string }) => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('确定要删除这篇文章吗？操作不可撤销。')) {
-      await supabase.from('articles').delete().eq('id', id);
-      fetchArticles();
+  const handleDelete = (id: string) => {
+    if (deletingId) return;
+    setArticleToDelete(id);
+    setShowConfirmModal(true);
+  };
+
+  const confirmArticleDeletion = async () => {
+    if (!articleToDelete) return;
+    setShowConfirmModal(false);
+    
+    setDeletingId(articleToDelete);
+    try {
+      const { data, error } = await supabase.from('articles').delete().eq('id', articleToDelete).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error("NO_PERMISSION_OR_NOT_FOUND");
+      await fetchArticles();
+    } catch (error: any) {
+      let errorMessage = '删除文章时发生未知错误。';
+      if (error.message === 'NO_PERMISSION_OR_NOT_FOUND') {
+        errorMessage = '删除失败：操作被数据库拒绝。\n\n这很可能是因为您的管理员权限没有被数据库的行级安全策略 (RLS) 正确识别。请检查 README.md 中 articles 表的 DELETE 策略。';
+      } else if (error.message) {
+        errorMessage = `删除失败：\n${error.message}\n\n请检查网络连接或 Supabase RLS 配置。`;
+      }
+      alert(errorMessage);
+    } finally {
+      setDeletingId(null);
+      setArticleToDelete(null);
     }
   };
+
+  const cancelArticleDeletion = () => {
+    setShowConfirmModal(false);
+    setArticleToDelete(null);
+  };
+
 
   return (
     <div>
@@ -194,7 +256,6 @@ const ManageArticles = ({ authorId }: { authorId: string }) => {
             </div>
             <div className="col-md-6"></div> {/* Placeholder to keep layout */}
             
-            {/* --- NEW: Image Preview & Upload Section --- */}
             <div className="col-12">
               <div className="row g-3 align-items-end">
                 <div className="col-md-3 col-sm-4">
@@ -252,7 +313,13 @@ const ManageArticles = ({ authorId }: { authorId: string }) => {
               </div>
               <div className="d-flex gap-2 pe-2">
                 <button onClick={() => { setEditArt(art); setEditingId(art.id); setShowEditor(true); }} className="btn btn-white shadow-sm rounded-circle p-2 text-dark"><Edit size={16}/></button>
-                <button onClick={() => handleDelete(art.id)} className="btn btn-white shadow-sm rounded-circle p-2 text-danger"><Trash2 size={16}/></button>
+                <button 
+                  onClick={() => handleDelete(art.id)} 
+                  className="btn btn-white shadow-sm rounded-circle p-2 text-danger"
+                  disabled={deletingId === art.id}
+                >
+                  {deletingId === art.id ? <Loader2 size={16} className="animate-spin"/> : <Trash2 size={16}/>}
+                </button>
               </div>
             </div>
           )) : (
@@ -260,6 +327,15 @@ const ManageArticles = ({ authorId }: { authorId: string }) => {
           )}
         </div>
       )}
+       <ConfirmModal 
+            isOpen={showConfirmModal}
+            onConfirm={confirmArticleDeletion}
+            onCancel={cancelArticleDeletion}
+            title="确认删除文章"
+            confirmText="确认删除"
+        >
+            确定要删除这篇文章吗？操作不可撤销。
+        </ConfirmModal>
     </div>
   );
 };
@@ -268,6 +344,10 @@ const ManageTools = () => {
   const [tools, setTools] = useState<any[]>([]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [toolToDelete, setToolToDelete] = useState<string | null>(null);
+  const [deletingToolId, setDeletingToolId] = useState<string | null>(null);
+
   const [editTool, setEditTool] = useState({ 
     id: '', 
     name: '', 
@@ -279,12 +359,12 @@ const ManageTools = () => {
     external_url: '' // 新增字段
   });
 
-  const fetchTools = async () => {
+  const fetchTools = useCallback(async () => {
     const { data } = await supabase.from('tools').select('*').order('created_at', { ascending: false });
     setTools(data || []);
-  };
+  }, []);
 
-  useEffect(() => { fetchTools(); }, []);
+  useEffect(() => { fetchTools(); }, [fetchTools]);
 
   const handleSave = async () => {
     if (!editTool.id || !editTool.name) return alert('请填入工具ID和名称');
@@ -298,18 +378,48 @@ const ManageTools = () => {
       error = err;
     }
 
-    if (error) alert('保存失败 (可能是ID重复): ' + error.message);
-    else {
+    if (error) {
+      if (error.message.includes("Could not find the")) {
+        alert(`保存失败：数据库结构已过期。\n\n错误: ${error.message}\n\n请检查 README.md 文件，并运行最新的'核心数据库初始化'脚本以更新您的数据表结构。`);
+      } else if (error.message.includes("violates row-level security policy")) {
+        alert(`保存失败：权限不足。\n\n这通常是由于 'tools' 表的行级安全策略 (RLS) 未配置。请检查 README.md 文件，并为 'tools' 表添加相应的安全策略。`);
+      } else {
+        alert('保存失败 (可能是ID重复): ' + error.message);
+      }
+    } else {
       setShowEditor(false);
       fetchTools();
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('确定要移除这个工具配置吗？')) {
-      await supabase.from('tools').delete().eq('id', id);
-      fetchTools();
+  const handleDelete = (id: string) => {
+    if(deletingToolId) return;
+    setToolToDelete(id);
+    setShowConfirmModal(true);
+  };
+  
+  const confirmToolDeletion = async () => {
+    if (!toolToDelete) return;
+    setShowConfirmModal(false);
+    setDeletingToolId(toolToDelete);
+    try {
+      const { data, error } = await supabase.from('tools').delete().eq('id', toolToDelete).select();
+      if (error) {
+        alert('删除失败: ' + error.message);
+      } else if (!data || data.length === 0) {
+        alert('删除失败：操作被数据库拒绝。\n\n请检查 README.md 中 tools 表的 RLS DELETE 策略。');
+      } else {
+        fetchTools();
+      }
+    } finally {
+      setDeletingToolId(null);
+      setToolToDelete(null);
     }
+  };
+  
+  const cancelToolDeletion = () => {
+      setShowConfirmModal(false);
+      setToolToDelete(null);
   };
 
   return (
@@ -403,7 +513,13 @@ const ManageTools = () => {
                   </div>
                   <div className="d-flex gap-2 pe-1">
                     <button onClick={() => { setEditTool(tool); setEditingId(tool.id); setShowEditor(true); }} className="btn btn-white shadow-sm rounded-circle p-2"><Edit size={16}/></button>
-                    <button onClick={() => handleDelete(tool.id)} className="btn btn-white shadow-sm rounded-circle p-2 text-danger"><Trash2 size={16}/></button>
+                    <button 
+                      onClick={() => handleDelete(tool.id)} 
+                      className="btn btn-white shadow-sm rounded-circle p-2 text-danger"
+                      disabled={deletingToolId === tool.id}
+                    >
+                      {deletingToolId === tool.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16}/>}
+                    </button>
                   </div>
                </div>
              </div>
@@ -412,6 +528,15 @@ const ManageTools = () => {
            )}
          </div>
        )}
+       <ConfirmModal
+            isOpen={showConfirmModal}
+            onConfirm={confirmToolDeletion}
+            onCancel={cancelToolDeletion}
+            title="确认移除工具"
+            confirmText="确认移除"
+        >
+            确定要移除这个工具配置吗？
+        </ConfirmModal>
     </div>
   );
 };

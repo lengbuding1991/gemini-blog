@@ -5,17 +5,17 @@ import {
   Lock, Zap, Sparkles, Code, FileJson, Calculator, X, CheckCircle2, Crown, Check, Globe, Database, Layers, Wrench, ExternalLink 
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { UserProfile } from '../types';
 
 interface ToolsGridProps {
-  user: { id: string; email: string; role: string; is_premium_user?: boolean } | null;
-  onUpdatePremium: () => void;
+  user: UserProfile | null;
+  onUpdatePremium: () => Promise<void>;
 }
 
 const ToolsGrid: React.FC<ToolsGridProps> = ({ user, onUpdatePremium }) => {
   const navigate = useNavigate();
   const [showPayModal, setShowPayModal] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
-  const [paySuccess, setPaySuccess] = useState(false);
+  const [paymentState, setPaymentState] = useState<'idle' | 'paying' | 'success'>('idle');
   const [tools, setTools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,31 +50,43 @@ const ToolsGrid: React.FC<ToolsGridProps> = ({ user, onUpdatePremium }) => {
 
   const handleStartPay = async () => {
     if (!user) return;
-    setIsPaying(true);
-    setTimeout(async () => {
+    setPaymentState('paying');
+    // 模拟支付网络延迟
+    await new Promise(r => setTimeout(r, 1500));
+    try {
       const { error } = await supabase
         .from('profiles')
-        .update({ is_premium_user: true })
+        .update({ role: 'vip' })
         .eq('id', user.id);
 
-      if (error) {
-        alert('权限更新失败');
+      if (error) throw error;
+      
+      // 关键修复：等待父组件的 state 更新完毕
+      await onUpdatePremium();
+      setPaymentState('success');
+
+    } catch (error: any) {
+      if (error.message && error.message.includes('security policy')) {
+         alert(`权限更新失败：数据库拒绝了本次操作。\n\n这通常是由于 'profiles' 表的行级安全策略 (RLS) 未正确配置。请检查 README.md 文件中的 '4. 行级安全策略 (RLS) 配置' 章节，并确保已为 profiles 表添加了允许用户更新自己信息的策略。`);
       } else {
-        setIsPaying(false);
-        setPaySuccess(true);
-        onUpdatePremium(); 
-        setTimeout(() => {
-          setShowPayModal(false);
-          setPaySuccess(false);
-        }, 2000);
+        alert('权限更新失败: ' + error.message);
       }
-    }, 1500);
+      setPaymentState('idle'); // 失败时重置状态
+    }
   };
+  
+  const handleCloseModal = () => {
+    setShowPayModal(false);
+    // 动画结束后重置支付状态
+    setTimeout(() => {
+      setPaymentState('idle');
+    }, 300);
+  }
 
   const handleLaunch = (tool: any) => {
     if (!user) return navigate('/auth');
     
-    const hasAccess = user.role === 'admin' || user.is_premium_user || !tool.is_premium;
+    const hasAccess = user.role === 'admin' || user.role === 'vip' || !tool.is_premium;
     if (!hasAccess) {
       setShowPayModal(true);
       return;
@@ -99,7 +111,7 @@ const ToolsGrid: React.FC<ToolsGridProps> = ({ user, onUpdatePremium }) => {
       <div className="row g-4">
         {tools.map(tool => {
           const isNotLoggedIn = !user;
-          const hasAccess = user?.role === 'admin' || user?.is_premium_user || !tool.is_premium;
+          const hasAccess = user?.role === 'admin' || user?.role === 'vip' || !tool.is_premium;
           const isPremiumLocked = tool.is_premium && !hasAccess;
 
           return (
@@ -151,33 +163,36 @@ const ToolsGrid: React.FC<ToolsGridProps> = ({ user, onUpdatePremium }) => {
           <div className="bg-white rounded-5 shadow-2xl p-4 p-lg-5 animate-fade-in" style={{maxWidth: '450px', width: '90%'}}>
             <div className="d-flex justify-content-between align-items-center mb-4">
               <h3 className="fw-black tracking-tight mb-0 text-slate-900">开通 VIP 权限</h3>
-              <button onClick={() => setShowPayModal(false)} className="btn btn-light rounded-circle p-2"><X size={20}/></button>
+              <button onClick={handleCloseModal} className="btn btn-light rounded-circle p-2"><X size={20}/></button>
             </div>
-            {/* 支付 UI 保持不变... */}
-            <div className="bg-slate-900 rounded-5 p-4 text-white mb-4 position-relative overflow-hidden">
-              <div className="d-flex align-items-center gap-3 mb-4">
-                <div className="bg-warning text-dark p-2 rounded-3 shadow"><Crown size={24} /></div>
-                <div>
-                  <div className="fw-black text-warning text-uppercase small tracking-widest" style={{fontSize: '9px'}}>Lifetime Access / 终身会员</div>
-                  <div className="h4 fw-black mb-0">¥ 19.9 <span className="small opacity-50 fw-medium">/ 永久</span></div>
-                </div>
-              </div>
-              <ul className="list-unstyled mb-0 small fw-bold text-slate-400">
-                <li className="mb-2 d-flex align-items-center gap-2"><CheckCircle2 className="text-blue-400" size={16} /> 解锁 AI 实验室所有智能工具</li>
-                <li className="mb-2 d-flex align-items-center gap-2"><CheckCircle2 className="text-blue-400" size={16} /> 优先体验管理端发布的最新工具</li>
-                <li className="d-flex align-items-center gap-2"><CheckCircle2 className="text-blue-400" size={16} /> 个人资料页尊贵 VIP 专属勋章</li>
-              </ul>
-            </div>
-            {paySuccess ? (
+            
+            {paymentState === 'success' ? (
               <div className="text-center py-4">
                 <div className="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex p-3 mb-3 animate-fade-in"><Check size={40} /></div>
-                <h4 className="fw-black text-success">权限已解锁！</h4>
-                <p className="text-muted small fw-bold">系统正在为您同步 VIP 身份...</p>
+                <h4 className="fw-black text-success">权限已成功解锁！</h4>
+                <p className="text-muted small fw-bold mb-4">所有 VIP 工具现在都可供您使用。</p>
+                <button onClick={handleCloseModal} className="btn btn-dark w-100 py-3 rounded-4 fw-black text-uppercase tracking-widest small">太棒了！</button>
               </div>
             ) : (
-              <button onClick={handleStartPay} className="btn btn-blue w-100 py-4 rounded-4 fs-5 fw-black shadow-lg" disabled={isPaying}>
-                {isPaying ? <span className="spinner-border spinner-border-sm me-2"></span> : '立即模拟支付'}
-              </button>
+              <>
+                <div className="bg-slate-900 rounded-5 p-4 text-white mb-4 position-relative overflow-hidden">
+                  <div className="d-flex align-items-center gap-3 mb-4">
+                    <div className="bg-warning text-dark p-2 rounded-3 shadow"><Crown size={24} /></div>
+                    <div>
+                      <div className="fw-black text-warning text-uppercase small tracking-widest" style={{fontSize: '9px'}}>Lifetime Access / 终身会员</div>
+                      <div className="h4 fw-black mb-0">¥ 19.9 <span className="small opacity-50 fw-medium">/ 永久</span></div>
+                    </div>
+                  </div>
+                  <ul className="list-unstyled mb-0 small fw-bold text-slate-400">
+                    <li className="mb-2 d-flex align-items-center gap-2"><CheckCircle2 className="text-blue-400" size={16} /> 解锁 AI 实验室所有智能工具</li>
+                    <li className="mb-2 d-flex align-items-center gap-2"><CheckCircle2 className="text-blue-400" size={16} /> 优先体验管理端发布的最新工具</li>
+                    <li className="d-flex align-items-center gap-2"><CheckCircle2 className="text-blue-400" size={16} /> 个人资料页尊贵 VIP 专属勋章</li>
+                  </ul>
+                </div>
+                <button onClick={handleStartPay} className="btn btn-blue w-100 py-4 rounded-4 fs-5 fw-black shadow-lg" disabled={paymentState === 'paying'}>
+                  {paymentState === 'paying' ? <span className="spinner-border spinner-border-sm me-2"></span> : '立即模拟支付'}
+                </button>
+              </>
             )}
           </div>
         </div>
