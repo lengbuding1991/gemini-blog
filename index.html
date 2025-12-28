@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -7,16 +6,17 @@
     <title>冷丶布丁的个人空间 | ColdPudding Space</title>
     <!-- Bootstrap 5.3.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Google Fonts: Lexend (Headings 400-900) & Inter (Body 400-700) -->
+    <!-- Google Fonts: Lexend & Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --cp-slate-900: #0f172a;
             --cp-blue-600: #2563eb;
+            --cp-blue-400: #60a5fa;
             --cp-accent: #3b82f6;
             --cp-glass: rgba(255, 255, 255, 0.88);
             --cp-font-heading: 'Lexend', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-            --cp-font-body: 'Inter', 'PingFang SC', sans-serif;
+            --cp-font-body: 'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
         }
 
         body { 
@@ -26,18 +26,53 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* 核心颜色类 */
+        .text-blue-600 { color: var(--cp-blue-600) !important; }
+        .text-blue-400 { color: var(--cp-blue-400) !important; }
+        .text-slate-900 { color: var(--cp-slate-900) !important; }
+        .text-slate-400 { color: #94a3b8 !important; }
+        .text-muted { color: #64748b !important; }
+        
+        /* 强制深色背景下的全局文字对比度 */
+        .bg-slate-900 { 
+            background-color: var(--cp-slate-900) !important; 
+            color: #f1f5f9 !important;
+        }
+        
+        /* 关键修复：确保蓝色背景卡片内的文字是白色的 */
+        .bg-blue-600 {
+            background-color: var(--cp-blue-600) !important;
+            color: #ffffff !important;
+        }
+        .bg-blue-600 .text-white-50 {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+        
+        .text-gradient {
+            background: linear-gradient(135deg, var(--cp-slate-900) 0%, var(--cp-blue-600) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .shadow-2xl {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+
         h1, h2, h3, h4, h5, h6, .fw-black {
             font-family: var(--cp-font-heading);
             font-weight: 900 !important;
             letter-spacing: -0.03em;
         }
         
-        .fw-extrabold {
-            font-family: var(--cp-font-heading);
-            font-weight: 800 !important;
-        }
-
-        /* 悬浮岛屿导航栏 */
+        /* 导航栏 */
         .navbar-refined {
             margin: 1.5rem auto;
             padding: 0.6rem 1.5rem;
@@ -48,98 +83,94 @@
             border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: 100px;
             box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
-            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
             z-index: 1050;
-        }
-        
-        @media (max-width: 991.98px) {
-            .navbar-refined {
-                border-radius: 1.25rem !important;
-                margin: 1rem auto;
-                width: 92%;
-                padding: 0.75rem 1.2rem;
-            }
-            .navbar-refined:has(.show) {
-                border-radius: 1.25rem !important;
-                padding-bottom: 1.5rem;
-            }
-            .navbar-collapse {
-                margin-top: 0.75rem;
-                border-top: 1px solid rgba(0, 0, 0, 0.04);
-                padding-top: 0.5rem;
-            }
         }
 
         .navbar-refined.scrolled {
-            margin-top: 1rem;
-            width: 80%;
+            margin-top: 0.8rem;
             background: rgba(15, 23, 42, 0.95);
             border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
-        .navbar-refined.scrolled .nav-link-refined, 
-        .navbar-refined.scrolled .navbar-brand span {
-            color: white !important;
-        }
+        .navbar-refined.scrolled .nav-link-refined { color: rgba(241, 245, 249, 0.7); }
+        .navbar-refined.scrolled .nav-link-refined:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+        .navbar-refined.scrolled .navbar-brand .text-slate-900 { color: #fff !important; }
+        .navbar-refined.scrolled .navbar-toggler { color: #fff; }
 
         .nav-link-refined {
-            font-weight: 900 !important;
-            font-size: 1rem;
-            color: var(--cp-slate-900) !important;
-            padding: 0.8rem 1.4rem !important;
-            position: relative;
-            transition: all 0.3s ease;
+            font-weight: 800;
+            color: #475569;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        @media (max-width: 991.98px) {
-            .nav-link-refined {
-                padding: 0.8rem 0.5rem !important;
-                font-size: 0.95rem;
-            }
-            .nav-link-refined::after { display: none; }
-        }
-
-        .nav-link-refined::after {
-            content: '';
-            position: absolute;
-            bottom: 5px;
-            left: 50%;
-            width: 0;
-            height: 3px;
-            background: var(--cp-blue-600);
+            font-size: 13px;
+            letter-spacing: 0.1em;
+            padding: 0.5rem 1.2rem !important;
+            border-radius: 50px;
             transition: all 0.3s ease;
-            transform: translateX(-50%);
-            border-radius: 10px;
         }
 
-        .nav-link-refined:hover::after { width: 25px; }
         .nav-link-refined:hover {
-            color: var(--cp-blue-600) !important;
+            color: var(--cp-blue-600);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        /* 登录页/表单精致样式 */
+        .form-label-custom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.65rem;
+            padding: 0 0.25rem;
+        }
+        .label-zh {
+            font-weight: 800;
+            color: var(--cp-slate-900);
+            font-size: 0.85rem;
+            letter-spacing: -0.01em;
+        }
+        .label-en {
+            font-size: 9px;
+            font-weight: 900;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+        
+        /* 输入框组合精修 */
+        .input-group-refined {
+            background: #f8fafc;
+            border: 2px solid #eef2f6 !important;
+            border-radius: 18px !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 2px;
+            overflow: hidden;
+        }
+        .input-group-refined:focus-within {
+            border-color: var(--cp-blue-600) !important;
+            background: white;
+            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.12) !important;
             transform: translateY(-1px);
         }
-
-        .text-gradient {
-            background: linear-gradient(135deg, #0f172a 10%, #2563eb 90%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .input-group-refined .input-group-text {
+            border: none;
+            background: transparent;
+            padding-left: 1.25rem !important;
+            padding-right: 0.5rem !important;
+            color: #94a3b8;
+            transition: color 0.3s ease;
         }
-
-        .logo-dot {
-            width: 10px;
-            height: 10px;
-            background: var(--cp-blue-600);
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 15px var(--cp-blue-600);
-            animation: pulse 2s infinite;
+        .input-group-refined:focus-within .input-group-text {
+            color: var(--cp-blue-600);
         }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.6); opacity: 0.4; }
-            100% { transform: scale(1); opacity: 1; }
+        .input-group-refined .form-control {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            padding: 0.9rem 1.25rem 0.9rem 0.5rem !important;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--cp-slate-900);
         }
 
         .btn-blue { 
@@ -147,78 +178,41 @@
             color: white !important;
             border-radius: 50px;
             font-weight: 900;
-            padding: 0.9rem 2.2rem;
+            padding: 1rem 2.2rem;
             border: none;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
             box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.4);
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
-
+        /* 关键修复：悬停时字体颜色必须显眼 */
         .btn-blue:hover {
-            transform: translateY(-4px) scale(1.03);
-            box-shadow: 0 20px 40px -8px rgba(37, 99, 235, 0.5);
+            background: #1d4ed8 !important;
+            color: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px -8px rgba(37, 99, 235, 0.5);
+            text-decoration: none;
         }
 
-        .form-label-custom {
-            display: flex;
-            align-items: baseline;
-            gap: 0.6rem;
-            margin-bottom: 0.6rem;
-        }
-        
-        .label-zh {
-            font-family: var(--cp-font-heading);
-            font-weight: 900;
-            font-size: 0.95rem;
-            color: var(--cp-slate-900);
-        }
-
-        .label-en {
-            font-family: 'Lexend', sans-serif;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            font-size: 0.7rem;
-            color: #94a3b8;
+        .logo-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--cp-blue-600);
+            border-radius: 50%;
+            margin-left: 2px;
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.4);
         }
 
         .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(25px); }
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .input-group-refined {
-            background: #f8fafc;
-            border-radius: 1.25rem;
-            transition: all 0.3s ease;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .input-group-refined:focus-within {
-            background: white;
-            border-color: var(--cp-blue-600);
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
-        }
-
-        .input-group-refined .form-control {
-            background: transparent !important;
-            box-shadow: none !important;
-        }
-
-        .navbar-toggler {
-            border: none !important;
-            padding: 0.5rem;
-            border-radius: 0.75rem;
-        }
-        
-        .article-content {
-            line-height: 1.8;
-            font-size: 1.1rem;
-        }
-        .article-content h2 { margin-top: 2rem; margin-bottom: 1rem; font-weight: 900; }
-        .article-content p { margin-bottom: 1.5rem; }
+        .cursor-pointer { cursor: pointer; }
     </style>
 <script type="importmap">
 {
@@ -237,18 +231,5 @@
 <body>
     <div id="root"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        window.addEventListener('scroll', function() {
-            const nav = document.querySelector('.navbar-refined');
-            // 关键修复：增加 nav 存在的判断
-            if (nav) {
-                if (window.scrollY > 60) {
-                    nav.classList.add('scrolled');
-                } else {
-                    nav.classList.remove('scrolled');
-                }
-            }
-        });
-    </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { ChevronLeft, Copy, Trash2, Download, Sparkles, Zap, Layout } from 'lucide-react';
+import { ChevronLeft, Copy, Trash2, Download, Sparkles, Zap } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 interface ToolDetailProps {
@@ -44,69 +44,72 @@ const ToolDetail: React.FC<ToolDetailProps> = ({ user }) => {
     switch (id) {
       case 'markdown':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 min-h-[600px]">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-slate-900"></div>
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">源文件</label>
+          <div className="row g-4" style={{ minHeight: '500px' }}>
+            <div className="col-lg-6 d-flex flex-column">
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <div className="bg-slate-900 rounded-circle" style={{width: '8px', height: '8px'}}></div>
+                <label className="text-slate-400 fw-black text-uppercase small tracking-widest">源文件 (Markdown)</label>
               </div>
               <textarea 
-                className="flex-grow p-8 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] font-mono text-sm focus:border-slate-900 transition-all outline-none resize-none shadow-inner"
-                placeholder="# 书写你的 Markdown 代码..."
+                className="form-control flex-grow-1 bg-light border-0 rounded-4 p-4 font-monospace shadow-inner"
+                style={{ fontSize: '14px', resize: 'none' }}
+                placeholder="# 书写你的内容..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
               />
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">预览模式</label>
+            <div className="col-lg-6 d-flex flex-column">
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <div className="bg-blue-600 rounded-circle" style={{width: '8px', height: '8px'}}></div>
+                <label className="text-slate-400 fw-black text-uppercase small tracking-widest">实时预览</label>
               </div>
-              <div className="flex-grow p-10 bg-white border-2 border-slate-100 rounded-[2.5rem] prose prose-slate prose-sm overflow-auto max-h-[600px] shadow-sm">
-                {input || <span className="text-slate-300 font-bold italic">实时渲染预览区域...</span>}
+              <div className="flex-grow-1 bg-white border rounded-4 p-4 overflow-auto shadow-sm" style={{ maxHeight: '500px' }}>
+                {input || <span className="text-muted italic opacity-50">预览区域...</span>}
               </div>
             </div>
           </div>
         );
       case 'json-format':
         return (
-          <div className="space-y-8">
+          <div className="d-flex flex-column gap-4">
             <textarea 
-              className="w-full h-80 p-8 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] font-mono text-sm focus:border-slate-900 outline-none shadow-inner"
-              placeholder='输入 JSON 数据串...'
+              className="form-control bg-light border-0 rounded-4 p-4 font-monospace shadow-inner"
+              style={{ height: '320px' }}
+              placeholder='在此处粘贴 JSON 字符串...'
               value={input}
               onChange={(e) => setInput(e.target.value)}
             />
-            <div className="flex gap-4">
+            <div className="d-flex gap-3 mt-2">
               <button 
                 onClick={() => {
                   try {
                     setInput(JSON.stringify(JSON.parse(input), null, 2));
                   } catch (e) {
-                    alert('JSON 格式错误');
+                    alert('JSON 格式错误，请检查输入。');
                   }
                 }}
-                className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-600 transition-all"
+                className="btn btn-dark rounded-pill px-5 py-3 fw-black text-uppercase tracking-widest small shadow"
               >
                 智能美化
               </button>
               <button 
                 onClick={() => setInput('')}
-                className="bg-slate-100 text-slate-400 px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-200 transition-all"
+                className="btn btn-light rounded-pill px-4 py-3 fw-black text-uppercase tracking-widest small text-muted"
               >
-                重置
+                清空重置
               </button>
             </div>
           </div>
         );
       case 'gemini-ai':
         return (
-          <div className="space-y-10 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex flex-col">
-               <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">输入指令 (Prompt)</label>
-              <textarea 
-                className="w-full h-40 p-8 bg-slate-900 text-white border-2 border-slate-800 rounded-[2.5rem] font-medium focus:border-blue-500 transition-all outline-none"
-                placeholder="告诉我你想要生成的文案需求..."
+          <div className="animate-fade-in">
+            <div className="mb-4">
+               <label className="text-slate-400 fw-black text-uppercase small tracking-widest mb-3 d-block">AI 指令 (Prompt)</label>
+               <textarea 
+                className="form-control bg-slate-900 text-white border-0 rounded-4 p-4 fw-medium shadow-lg"
+                style={{ height: '120px' }}
+                placeholder="例如：写一段吸引人的产品推广文案..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
               />
@@ -114,18 +117,18 @@ const ToolDetail: React.FC<ToolDetailProps> = ({ user }) => {
             <button 
               onClick={handleGenerateAI}
               disabled={isGenerating || !input.trim()}
-              className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-blue-500/20"
+              className="btn btn-blue w-100 py-4 rounded-4 fs-6 d-flex align-items-center justify-content-center gap-3 shadow-lg mb-5"
             >
               {isGenerating ? (
-                <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span className="spinner-border spinner-border-sm"></span>
               ) : (
-                <><Sparkles size={20} className="text-blue-200" /> 立即生成智能文案</>
+                <><Sparkles size={20} /> 立即生成智能文案</>
               )}
             </button>
             {aiResponse && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 block">生成结果</label>
-                <div className="p-10 bg-white border-2 border-slate-100 rounded-[3rem] text-slate-800 font-medium leading-relaxed whitespace-pre-wrap shadow-xl">
+              <div className="animate-fade-in">
+                <label className="text-slate-400 fw-black text-uppercase small tracking-widest mb-3 d-block">生成结果</label>
+                <div className="bg-white border-2 rounded-5 p-4 p-lg-5 text-slate-900 fw-medium shadow-sm position-relative" style={{ whiteSpace: 'pre-wrap' }}>
                   {aiResponse}
                 </div>
               </div>
@@ -133,39 +136,29 @@ const ToolDetail: React.FC<ToolDetailProps> = ({ user }) => {
           </div>
         );
       default:
-        return <div className="p-20 text-center text-slate-400 font-black uppercase tracking-widest">Tool Under Construction...</div>;
+        return <div className="p-5 text-center text-muted fw-black text-uppercase tracking-widest opacity-50">工具正在维护中...</div>;
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-      {/* 优化后的返回按钮 */}
-      <Link to="/tools" className="group inline-flex items-center gap-4 px-7 py-3 bg-slate-900 text-white rounded-full hover:bg-blue-600 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-200 hover:-translate-y-1 mb-12">
-        <ChevronLeft size={18} strokeWidth={3} className="group-hover:-translate-x-1.5 transition-transform duration-300" />
-        <span className="text-xs font-black uppercase tracking-[0.2em]">返回个人实验室</span>
+    <div className="container py-5">
+      <Link to="/tools" className="btn btn-dark rounded-pill px-4 py-2 d-inline-flex align-items-center gap-2 fw-black small text-uppercase tracking-widest text-decoration-none shadow-sm mb-5 transition-all">
+        <ChevronLeft size={16} /> 返回实验室
       </Link>
 
-      <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-50 overflow-hidden">
-        <div className="bg-slate-900 px-12 py-10 flex flex-col md:flex-row md:items-center justify-between gap-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-full bg-blue-600/10 skew-x-12 translate-x-32 -z-0"></div>
-          <div className="relative z-10">
-            <h1 className="text-3xl font-black text-white tracking-tight">{id === 'gemini-ai' ? 'AI 智能引擎' : '个人工具 / ' + id?.toUpperCase()}</h1>
-            <p className="text-slate-400 font-bold text-sm mt-2 uppercase tracking-widest">Efficiency & Innovation</p>
+      <div className="bg-white rounded-5 shadow-2xl border overflow-hidden">
+        <div className="bg-slate-900 px-4 px-lg-5 py-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4">
+          <div>
+            <h1 className="h4 fw-black text-white tracking-tight mb-1">{id === 'gemini-ai' ? 'AI 智能引擎' : '工具 / ' + id?.toUpperCase()}</h1>
+            <span className="text-slate-400 fw-bold small text-uppercase tracking-widest" style={{fontSize: '10px'}}>Efficiency & Innovation</span>
           </div>
-          <div className="flex gap-4 relative z-10">
-            <button onClick={handleCopy} className="w-14 h-14 bg-slate-800 text-white rounded-2xl hover:bg-blue-600 transition-all flex items-center justify-center shadow-lg" title="复制">
-              <Copy size={20} />
-            </button>
-            <button className="w-14 h-14 bg-slate-800 text-white rounded-2xl hover:bg-blue-600 transition-all flex items-center justify-center shadow-lg" title="下载">
-              <Download size={20} />
-            </button>
-            <button onClick={() => { setInput(''); setAiResponse(''); }} className="w-14 h-14 bg-slate-800 text-rose-400 rounded-2xl hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-lg" title="清空">
-              <Trash2 size={20} />
-            </button>
+          <div className="d-flex gap-2">
+            <button onClick={handleCopy} className="btn btn-light bg-opacity-10 text-white border-0 p-3 rounded-4 hover-blue"><Copy size={18} /></button>
+            <button onClick={() => { setInput(''); setAiResponse(''); }} className="btn btn-light bg-opacity-10 text-danger border-0 p-3 rounded-4 hover-bg-danger"><Trash2 size={18} /></button>
           </div>
         </div>
         
-        <div className="p-12">
+        <div className="p-4 p-lg-5">
           {renderTool()}
         </div>
       </div>
