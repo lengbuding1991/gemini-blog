@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
 import { 
   User, 
@@ -11,7 +11,8 @@ import {
   Crown,
   LayoutDashboard,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
 
@@ -30,6 +31,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
+  const navbarCollapseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // 监听滚动
@@ -84,6 +86,15 @@ const App: React.FC = () => {
     window.location.hash = '#/';
   };
 
+  const closeNavbar = () => {
+    if (navbarCollapseRef.current && navbarCollapseRef.current.classList.contains('show')) {
+      const bsCollapse = (window as any).bootstrap.Collapse.getInstance(navbarCollapseRef.current);
+      if (bsCollapse) {
+        bsCollapse.hide();
+      }
+    }
+  };
+
   const renderBadge = () => {
     if (!user) return null;
     if (user.role === 'admin') return <span className="badge bg-slate-900 text-white rounded-pill px-2 py-1 ms-1 fw-black shadow-sm" style={{fontSize: '9px'}}><ShieldCheck size={10} className="me-1" /> STAFF</span>;
@@ -99,27 +110,40 @@ const App: React.FC = () => {
         <header className="fixed-top w-100">
           <nav className={`navbar navbar-expand-lg navbar-refined mx-auto ${scrolled ? 'scrolled' : ''}`}>
             <div className="container-fluid px-0">
-              <Link to="/" className="navbar-brand d-flex align-items-center gap-2">
+              <Link to="/" className="navbar-brand d-flex align-items-center gap-2" onClick={closeNavbar}>
                 <span className="fw-black fs-4 tracking-tighter text-slate-900 transition-all">
                   冷丶布丁<span className="logo-dot"></span>
                 </span>
               </Link>
-              <div className="collapse navbar-collapse" id="mainNavbar">
+
+              <button 
+                className="navbar-toggler border-0 shadow-none p-0 d-lg-none" 
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#mainNavbar"
+                aria-controls="mainNavbar" 
+                aria-expanded="false" 
+                aria-label="Toggle navigation"
+              >
+                <Menu size={24} className={scrolled ? 'text-white' : 'text-slate-900'} />
+              </button>
+
+              <div className="collapse navbar-collapse" id="mainNavbar" ref={navbarCollapseRef}>
                 <ul className="navbar-nav mx-auto mb-2 mb-lg-0 gap-1">
-                  <li className="nav-item"><Link to="/" className="nav-link nav-link-refined">首页</Link></li>
-                  <li className="nav-item"><Link to="/articles" className="nav-link nav-link-refined">深度思考</Link></li>
-                  <li className="nav-item"><Link to="/tools" className="nav-link nav-link-refined">实验室</Link></li>
-                  <li className="nav-item"><Link to="/contact" className="nav-link nav-link-refined">与我联系</Link></li>
+                  <li className="nav-item"><Link to="/" className="nav-link nav-link-refined" onClick={closeNavbar}>首页</Link></li>
+                  <li className="nav-item"><Link to="/articles" className="nav-link nav-link-refined" onClick={closeNavbar}>深度思考</Link></li>
+                  <li className="nav-item"><Link to="/tools" className="nav-link nav-link-refined" onClick={closeNavbar}>实验室</Link></li>
+                  <li className="nav-item"><Link to="/contact" className="nav-link nav-link-refined" onClick={closeNavbar}>与我联系</Link></li>
                 </ul>
-                <div className="d-flex align-items-center gap-3">
+                <div className="d-flex align-items-center gap-3 mt-3 mt-lg-0">
                   {user?.role === 'admin' && (
-                    <Link to="/admin" className="btn btn-dark rounded-pill px-3 py-2 d-none d-lg-flex align-items-center gap-2 shadow-sm border-0 transition-all hover-blue">
+                    <Link to="/admin" className="btn btn-dark rounded-pill px-3 py-2 d-flex align-items-center gap-2 shadow-sm border-0 transition-all hover-blue" onClick={closeNavbar}>
                       <LayoutDashboard size={16} />
                       <span className="fw-black small text-uppercase tracking-widest" style={{fontSize: '11px'}}>进入后台</span>
                     </Link>
                   )}
                   {user ? (
-                    <div className="dropdown">
+                    <div className="dropdown w-100 w-lg-auto">
                       <div className="d-flex align-items-center gap-2 cursor-pointer ps-2 py-1 pe-3 bg-white rounded-pill border shadow-sm transition-all" data-bs-toggle="dropdown">
                         <div className="rounded-circle overflow-hidden border border-light" style={{width: '32px', height: '32px'}}>
                           {user.avatar_url ? (
@@ -138,14 +162,14 @@ const App: React.FC = () => {
                       </div>
                       <ul className="dropdown-menu dropdown-menu-end border-0 shadow-lg p-2 rounded-4 mt-3 animate-fade-in">
                         <li><h6 className="dropdown-header small text-uppercase fw-black text-muted">个人中心</h6></li>
-                        <li><Link to="/profile" className="dropdown-item rounded-3">个人资料</Link></li>
-                        {user.role === 'admin' && <li><Link to="/admin" className="dropdown-item rounded-3">管理中心</Link></li>}
+                        <li><Link to="/profile" className="dropdown-item rounded-3" onClick={closeNavbar}>个人资料</Link></li>
+                        {user.role === 'admin' && <li><Link to="/admin" className="dropdown-item rounded-3" onClick={closeNavbar}>管理中心</Link></li>}
                         <li><hr className="dropdown-divider my-2" /></li>
-                        <li><button onClick={handleLogout} className="dropdown-item text-danger d-flex align-items-center gap-2 rounded-3"><LogOut size={16} /> 登出账号</button></li>
+                        <li><button onClick={() => { handleLogout(); closeNavbar(); }} className="dropdown-item text-danger d-flex align-items-center gap-2 rounded-3"><LogOut size={16} /> 登出账号</button></li>
                       </ul>
                     </div>
                   ) : (
-                    <Link to="/auth" className="btn btn-blue py-2 px-4 shadow">开始探索</Link>
+                    <Link to="/auth" className="btn btn-blue py-2 px-4 shadow w-100 w-lg-auto text-center" onClick={closeNavbar}>开始探索</Link>
                   )}
                 </div>
               </div>
